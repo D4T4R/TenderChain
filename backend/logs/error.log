@@ -1,0 +1,4 @@
+2025-08-19 01:40:19 [ERROR]: MongooseError: Connection.prototype.close() no longer accepts a callback
+    at NativeConnection.close (/home/aniketdatar/Desktop/Other/tendersystem-blockchain/backend/node_modules/mongoose/lib/connection.js:856:11)
+    at process.<anonymous> (/home/aniketdatar/Desktop/Other/tendersystem-blockchain/backend/server.js:103:23)
+    at process.emit (node:events:513:28)

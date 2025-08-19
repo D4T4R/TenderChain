@@ -1,0 +1,2825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TenderChain - Blockchain-Based Tender Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        /* Navigation */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 1rem 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .navbar.scrolled {
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            position: relative;
+        }
+
+        .nav-links a:hover {
+            color: #667eea;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -5px;
+            left: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-outline:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-wallet {
+            background: #f6851b;
+            color: white;
+        }
+
+        .btn-wallet:hover {
+            background: #e2761b;
+            transform: translateY(-2px);
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #1e3c72 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="none"><circle cx="100" cy="100" r="3" fill="rgba(255,255,255,0.1)"/><circle cx="300" cy="200" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="500" cy="150" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="700" cy="300" r="3" fill="rgba(255,255,255,0.1)"/><circle cx="200" cy="400" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="600" cy="450" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="800" cy="200" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="150" cy="600" r="3" fill="rgba(255,255,255,0.1)"/><circle cx="450" cy="650" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="750" cy="700" r="2" fill="rgba(255,255,255,0.1)"/></svg>');
+            animation: float 20s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .hero-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-content h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+            animation: slideInLeft 1s ease-out;
+        }
+
+        .hero-content p {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 2rem;
+            animation: slideInLeft 1s ease-out 0.2s both;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            animation: slideInLeft 1s ease-out 0.4s both;
+        }
+
+        .hero-buttons .btn-primary {
+            background: white;
+            color: #667eea;
+            border: 2px solid white;
+        }
+
+        .hero-buttons .btn-primary:hover {
+            background: rgba(255, 255, 255, 0.9);
+            color: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+        }
+
+        .hero-buttons .btn-outline {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+
+        .hero-buttons .btn-outline:hover {
+            background: white;
+            color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .hero-visual {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: slideInRight 1s ease-out;
+        }
+
+        .blockchain-visual {
+            width: 400px;
+            height: 400px;
+            position: relative;
+        }
+
+        .block {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .block:nth-child(1) { top: 50px; left: 50px; animation-delay: 0s; }
+        .block:nth-child(2) { top: 50px; left: 160px; animation-delay: 0.3s; }
+        .block:nth-child(3) { top: 50px; left: 270px; animation-delay: 0.6s; }
+        .block:nth-child(4) { top: 160px; left: 50px; animation-delay: 0.9s; }
+        .block:nth-child(5) { top: 160px; left: 160px; animation-delay: 1.2s; }
+        .block:nth-child(6) { top: 160px; left: 270px; animation-delay: 1.5s; }
+        .block:nth-child(7) { top: 270px; left: 50px; animation-delay: 1.8s; }
+        .block:nth-child(8) { top: 270px; left: 160px; animation-delay: 2.1s; }
+        .block:nth-child(9) { top: 270px; left: 270px; animation-delay: 2.4s; }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.7; }
+            50% { transform: scale(1.1); opacity: 1; }
+        }
+
+        .chain-link {
+            position: absolute;
+            width: 30px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .chain-link.horizontal {
+            top: 89px;
+        }
+
+        .chain-link.vertical {
+            width: 2px;
+            height: 30px;
+            left: 89px;
+        }
+
+        /* Features Section */
+        .features {
+            padding: 6rem 0;
+            background: #f8f9fa;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-title h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-title p {
+            font-size: 1.1rem;
+            color: #666;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+        
+        .features-grid.six-cards {
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+        }
+
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+            transition: left 0.8s ease;
+        }
+
+        .feature-card:hover::before {
+            left: 100%;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.2);
+        }
+
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover .feature-icon {
+            transform: scale(1.1) rotate(10deg);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .feature-card.anti-corruption {
+            border: 2px solid #e74c3c;
+        }
+
+        .feature-card.anti-corruption .feature-icon {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .feature-card.transparency {
+            border: 2px solid #3498db;
+        }
+
+        .feature-card.transparency .feature-icon {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        }
+
+        .feature-card.automation {
+            border: 2px solid #2ecc71;
+        }
+
+        .feature-card.automation .feature-icon {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+        }
+
+        /* Problem-Solution Section */
+        .problem-solution {
+            padding: 6rem 0;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+        }
+
+        .problem-solution .section-title h2 {
+            color: white;
+            background: linear-gradient(135deg, #3498db 0%, #2ecc71 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .problem-solution .section-title p {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            margin-top: 4rem;
+        }
+
+        .problem-side, .solution-side {
+            position: relative;
+        }
+
+        .problem-side h3 {
+            color: #e74c3c;
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .solution-side h3 {
+            color: #2ecc71;
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .issue-item, .solution-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .issue-item {
+            border-left: 4px solid #e74c3c;
+        }
+
+        .solution-item {
+            border-left: 4px solid #2ecc71;
+        }
+
+        .issue-item:hover, .solution-item:hover {
+            transform: translateX(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        /* Statistics Section */
+        .statistics {
+            padding: 6rem 0;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .statistics::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="none"><circle cx="100" cy="100" r="2" fill="rgba(102,126,234,0.1)"/><circle cx="300" cy="200" r="1" fill="rgba(102,126,234,0.1)"/><circle cx="500" cy="150" r="2" fill="rgba(102,126,234,0.1)"/><circle cx="700" cy="300" r="1" fill="rgba(102,126,234,0.1)"/><circle cx="200" cy="400" r="2" fill="rgba(102,126,234,0.1)"/></svg>');
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .stats-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .catchy-line {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 50%, #667eea 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            animation: gradient-shift 3s ease-in-out infinite;
+        }
+
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid transparent;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .stat-card.corruption {
+            border-color: #e74c3c;
+        }
+
+        .stat-card.corruption::before {
+            background: linear-gradient(90deg, #e74c3c, #c0392b);
+        }
+
+        .stat-card.efficiency {
+            border-color: #2ecc71;
+        }
+
+        .stat-card.efficiency::before {
+            background: linear-gradient(90deg, #2ecc71, #27ae60);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card.corruption .stat-number {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-card.efficiency .stat-number {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 1.1rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .stat-description {
+            font-size: 0.9rem;
+            color: #888;
+            margin-top: 0.5rem;
+            line-height: 1.4;
+        }
+
+        /* Charts Section */
+        .corruption-data {
+            padding: 6rem 0;
+            background: #2c3e50;
+            color: white;
+            position: relative;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 3rem;
+            margin-top: 4rem;
+        }
+
+        .chart-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .chart-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        /* Animated Bar Chart */
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            height: 200px;
+            margin: 2rem 0;
+            padding: 0 1rem;
+        }
+
+        .bar {
+            width: 15%;
+            background: linear-gradient(180deg, #e74c3c 0%, #c0392b 100%);
+            border-radius: 4px 4px 0 0;
+            position: relative;
+            transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            animation: growBar 2s ease-out forwards;
+        }
+
+        .bar.positive {
+            background: linear-gradient(180deg, #2ecc71 0%, #27ae60 100%);
+        }
+
+        @keyframes growBar {
+            from { height: 0; }
+            to { height: var(--bar-height); }
+        }
+
+        .bar-label {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        .bar-value {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        /* Animated Pie Chart */
+        .pie-chart {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            margin: 2rem auto;
+            position: relative;
+            background: conic-gradient(
+                #e74c3c 0deg 108deg,
+                #f39c12 108deg 180deg,
+                #2ecc71 180deg 252deg,
+                #3498db 252deg 360deg
+            );
+            animation: rotatePie 3s ease-out;
+        }
+
+        @keyframes rotatePie {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .pie-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            background: #2c3e50;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .pie-legend {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        /* Progress Bars */
+        .progress-container {
+            margin: 1.5rem 0;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 2s ease-out;
+            animation: fillProgress 2s ease-out forwards;
+        }
+
+        @keyframes fillProgress {
+            from { width: 0; }
+            to { width: var(--progress-width); }
+        }
+
+        .progress-fill.high {
+            background: linear-gradient(90deg, #e74c3c, #c0392b);
+        }
+
+        .progress-fill.medium {
+            background: linear-gradient(90deg, #f39c12, #e67e22);
+        }
+
+        .progress-fill.low {
+            background: linear-gradient(90deg, #2ecc71, #27ae60);
+        }
+
+        /* Indian Government Stats */
+        .india-stats {
+            background: linear-gradient(135deg, #ff9933 0%, #ffffff 50%, #138808 100%);
+            padding: 4rem 0;
+            position: relative;
+        }
+
+        .india-stats::before {
+            content: '🇮🇳';
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            font-size: 3rem;
+            opacity: 0.3;
+        }
+
+        .india-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .india-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border-left: 5px solid #ff9933;
+            height: 320px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .india-card h3 {
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .india-card-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+            margin-right: -0.5rem;
+        }
+
+        .india-card-content::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .india-card-content::-webkit-scrollbar-track {
+            background: rgba(255, 153, 51, 0.1);
+            border-radius: 4px;
+        }
+
+        .india-card-content::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #ff9933, #ff7700);
+            border-radius: 4px;
+        }
+
+        .india-card-content::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #ff7700, #ff5500);
+        }
+
+        .india-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        /* Animated Counter */
+        .counter-animation {
+            display: inline-block;
+            font-weight: 700;
+            color: #e74c3c;
+        }
+
+        /* Global Comparison */
+        .global-comparison {
+            padding: 6rem 0;
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            color: white;
+        }
+
+        .comparison-chart {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .country-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .country-card:hover {
+            transform: scale(1.05);
+            border-color: #3498db;
+        }
+
+        .country-flag {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .country-score {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 1rem 0;
+        }
+
+        .score-high { color: #2ecc71; }
+        .score-medium { color: #f39c12; }
+        .score-low { color: #e74c3c; }
+
+        /* How It Works Section */
+        .how-it-works {
+            padding: 6rem 0;
+            background: var(--bg-primary);
+        }
+
+        .steps-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 4rem;
+            position: relative;
+        }
+
+        .step-card {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .step-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+
+        .step-number {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0 auto 1.5rem;
+            position: relative;
+        }
+
+        .step-card h4 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .step-card p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* Animated Counter */
+        @keyframes countUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animated-counter {
+            animation: countUp 0.6s ease-out forwards;
+        }
+
+        /* Section Transitions */
+        .section-transition {
+            opacity: 0;
+            transform: translateY(60px);
+            transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .section-transition.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Staggered Animation */
+        .stagger-item {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .stagger-item.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Floating Elements */
+        @keyframes floatUp {
+            0% {
+                opacity: 0;
+                transform: translateY(100px) scale(0.8);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .float-up {
+            animation: floatUp 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        /* Scale In Animation */
+        @keyframes scaleIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .scale-in {
+            animation: scaleIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        /* Slide In From Sides */
+        @keyframes slideInFromLeft {
+            0% {
+                opacity: 0;
+                transform: translateX(-60px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideInFromRight {
+            0% {
+                opacity: 0;
+                transform: translateX(60px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .slide-in-left {
+            animation: slideInFromLeft 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        .slide-in-right {
+            animation: slideInFromRight 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        /* Reveal Animation */
+        @keyframes reveal {
+            0% {
+                opacity: 0;
+                transform: translateY(50px);
+                filter: blur(10px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+                filter: blur(0px);
+            }
+        }
+
+        .reveal {
+            animation: reveal 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        /* Morphing Background */
+        @keyframes morphBackground {
+            0% {
+                border-radius: 20% 80% 30% 70% / 60% 30% 70% 40%;
+            }
+            25% {
+                border-radius: 70% 30% 60% 40% / 30% 80% 20% 70%;
+            }
+            50% {
+                border-radius: 40% 60% 80% 20% / 70% 40% 60% 30%;
+            }
+            75% {
+                border-radius: 80% 20% 40% 60% / 40% 70% 30% 60%;
+            }
+            100% {
+                border-radius: 20% 80% 30% 70% / 60% 30% 70% 40%;
+            }
+        }
+
+        /* Section Dividers */
+        .section-divider {
+            position: relative;
+            height: 120px;
+            overflow: hidden;
+        }
+
+        .section-divider::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            transform: skewY(-2deg);
+            transform-origin: top left;
+        }
+
+        .section-divider.reverse::before {
+            transform: skewY(2deg);
+            transform-origin: top right;
+        }
+
+        /* Progressive Blur Effect */
+        .progressive-blur {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progressive-blur::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: inherit;
+            filter: blur(20px);
+            transform: scale(1.1);
+            transition: all 0.8s ease;
+            z-index: -1;
+        }
+
+        .progressive-blur.in-view::before {
+            filter: blur(0px);
+            transform: scale(1);
+        }
+
+        /* Particle Effect */
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(102, 126, 234, 0.6);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .particle:nth-child(odd) {
+            animation-delay: -2s;
+            background: rgba(118, 75, 162, 0.6);
+        }
+
+        .particle:nth-child(3n) {
+            animation-delay: -4s;
+            background: rgba(52, 152, 219, 0.6);
+        }
+
+        /* Glowing Elements */
+        .glow {
+            position: relative;
+        }
+
+        .glow::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #667eea, #764ba2, #3498db, #2ecc71);
+            border-radius: inherit;
+            z-index: -1;
+            opacity: 0;
+            filter: blur(20px);
+            transition: opacity 0.3s ease;
+        }
+
+        .glow:hover::after {
+            opacity: 0.7;
+            animation: rotate 3s linear infinite;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* CTA Section */
+        .cta {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 6rem 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="none"><path d="M0,300 Q250,200 500,300 T1000,300 L1000,1000 L0,1000 Z" fill="rgba(255,255,255,0.1)"/></svg>');
+            animation: wave 15s ease-in-out infinite;
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: translateX(0px); }
+            50% { transform: translateX(-50px); }
+        }
+
+        .cta-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .cta h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 1rem;
+        }
+
+        .cta p {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* Animations */
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Enhanced Dark Mode Variables */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-tertiary: #2c3e50;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --text-tertiary: #999999;
+            --text-light: rgba(255, 255, 255, 0.9);
+            --card-bg: #ffffff;
+            --card-shadow: rgba(0, 0, 0, 0.1);
+            --card-shadow-hover: rgba(102, 126, 234, 0.2);
+            --border-color: rgba(255, 255, 255, 0.2);
+            --nav-bg: rgba(255, 255, 255, 0.95);
+            --nav-shadow: rgba(0, 0, 0, 0.1);
+            --accent-gradient: linear-gradient(135deg, #0f3460 0%, #1e3c72 100%);
+            --hero-gradient: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #1e3c72 100%);
+            --card-border: transparent;
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-tertiary: #111111;
+            --text-primary: #ffffff;
+            --text-secondary: #e0e0e0;
+            --text-tertiary: #b0b0b0;
+            --text-light: rgba(255, 255, 255, 0.95);
+            --card-bg: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%);
+            --card-shadow: rgba(0, 0, 0, 0.8);
+            --card-shadow-hover: rgba(255, 255, 255, 0.1);
+            --border-color: rgba(255, 255, 255, 0.15);
+            --nav-bg: rgba(0, 0, 0, 0.95);
+            --nav-shadow: rgba(0, 0, 0, 0.8);
+            --accent-gradient: linear-gradient(135deg, #4a90e2 0%, #7b68ee 100%);
+            --hero-gradient: linear-gradient(135deg, #000000 0%, #1a1a1a 25%, #2d2d2d 50%, #1a1a1a 75%, #000000 100%);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .hero {
+            background: var(--hero-gradient);
+        }
+
+        .features {
+            background: var(--bg-secondary);
+        }
+
+        .statistics {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, #e9ecef 100%);
+        }
+
+        [data-theme="dark"] .statistics {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, #0f0f0f 100%);
+        }
+
+        .feature-card {
+            background: var(--card-bg);
+            box-shadow: 0 10px 30px var(--card-shadow);
+            border: 1px solid var(--card-border);
+        }
+
+        [data-theme="dark"] .feature-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .feature-card:hover {
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.2);
+        }
+
+        [data-theme="dark"] .feature-card:hover {
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .navbar {
+            background: var(--nav-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .navbar.scrolled {
+            background: var(--nav-bg);
+            box-shadow: 0 8px 32px var(--nav-shadow);
+        }
+
+        [data-theme="dark"] .navbar {
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+        }
+
+        .nav-links a {
+            color: var(--text-primary);
+        }
+
+        .section-title p {
+            color: var(--text-secondary);
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            box-shadow: 0 10px 30px var(--card-shadow);
+            border: 1px solid var(--card-border);
+        }
+
+        [data-theme="dark"] .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+        }
+
+        .stat-description {
+            color: var(--text-secondary);
+            opacity: 0.8;
+        }
+
+        .step-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+        }
+
+        [data-theme="dark"] .step-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .step-card h4 {
+            color: var(--text-primary);
+        }
+
+        .step-card p {
+            color: var(--text-secondary);
+        }
+
+        .india-card {
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        [data-theme="dark"] .india-card {
+            background: rgba(45, 45, 45, 0.95);
+            color: var(--text-primary);
+        }
+
+        .chart-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+        }
+
+        [data-theme="dark"] .chart-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .issue-item, .solution-item {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+        }
+
+        [data-theme="dark"] .issue-item, 
+        [data-theme="dark"] .solution-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .country-card {
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+        }
+
+        [data-theme="dark"] .country-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        /* Modern Dark Mode Toggle Button */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 25px;
+            width: 50px;
+            height: 28px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 4px 15px var(--card-shadow);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            padding: 2px;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+
+        .theme-toggle-slider {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: white;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transform: translateX(0);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        [data-theme="dark"] .theme-toggle {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .theme-toggle-slider {
+            transform: translateX(22px);
+            background: linear-gradient(135deg, #ffd700 0%, #ff6b35 100%);
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+        }
+
+        .theme-toggle:active .theme-toggle-slider {
+            transform: scale(0.9) translateX(var(--slider-position, 0));
+        }
+
+        [data-theme="dark"] .theme-toggle:active .theme-toggle-slider {
+            transform: scale(0.9) translateX(22px);
+        }
+
+        /* Dark mode specific gradients */
+        [data-theme="dark"] .section-title h2 {
+            background: linear-gradient(135deg, #8a9cff 0%, #9d7bea 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        [data-theme="dark"] .problem-solution .section-title h2 {
+            background: linear-gradient(135deg, #5dade2 0%, #58d68d 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        [data-theme="dark"] .catchy-line {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 50%, #8a9cff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        [data-theme="dark"] .stat-number {
+            background: linear-gradient(135deg, #8a9cff 0%, #9d7bea 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        [data-theme="dark"] .stat-card.corruption .stat-number {
+            background: linear-gradient(135deg, #ff7675 0%, #e17055 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        [data-theme="dark"] .stat-card.efficiency .stat-number {
+            background: linear-gradient(135deg, #55efc4 0%, #00b894 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .features-grid.six-cards {
+                grid-template-columns: repeat(2, 1fr);
+                grid-template-rows: repeat(3, 1fr);
+                gap: 2rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 2rem;
+            }
+            
+            .comparison-chart {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 2rem;
+            }
+            
+            .charts-container {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .hero-container {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 2rem;
+            }
+
+            .hero-content h1 {
+                font-size: 2.5rem;
+            }
+
+            .nav-container {
+                padding: 0 1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .blockchain-visual {
+                width: 300px;
+                height: 300px;
+            }
+
+            .features-grid,
+            .features-grid.six-cards {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+                gap: 2rem;
+            }
+            
+            .comparison-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 2rem;
+            }
+            
+            .india-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 2rem;
+            }
+            
+            .india-card {
+                height: 280px;
+            }
+            
+            .comparison-chart {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 2rem;
+            }
+            
+            .steps-container {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .auth-buttons {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .catchy-line {
+                font-size: 1.8rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .catchy-line {
+                font-size: 1.5rem;
+            }
+            
+            .container {
+                padding: 0 1rem;
+            }
+            
+            .india-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .india-card {
+                height: 250px;
+                padding: 1.25rem;
+            }
+        }
+
+        /* Footer */
+        .footer {
+            background: #2c3e50;
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+        }
+
+        .footer p {
+            margin-bottom: 1rem;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <img src="reference-logo.png" alt="TenderChain" style="height: 70px; width: auto; filter: drop-shadow(0 3px 12px rgba(102, 126, 234, 0.4)); border-radius: 8px;">
+            </div>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+            <div class="auth-buttons">
+                <button id="launchAppBtn" class="btn btn-primary">🚀 Launch App</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-container">
+            <div class="hero-content">
+                <h1>Revolutionize Tender Management with Blockchain</h1>
+                <p>TenderChain brings transparency, security, and efficiency to government and corporate tender processes through cutting-edge blockchain technology.</p>
+                <div class="hero-buttons">
+                    <button id="heroLaunchBtn" class="btn btn-primary">🚀 Launch App</button>
+                    <a href="#features" class="btn btn-outline">Learn More</a>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="blockchain-visual">
+                    <div class="block">📄</div>
+                    <div class="block">🔐</div>
+                    <div class="block">✅</div>
+                    <div class="block">🏢</div>
+                    <div class="block">⛓️</div>
+                    <div class="block">🔍</div>
+                    <div class="block">💰</div>
+                    <div class="block">📊</div>
+                    <div class="block">🎯</div>
+                    <div class="chain-link horizontal" style="left: 130px; top: 89px;"></div>
+                    <div class="chain-link horizontal" style="left: 240px; top: 89px;"></div>
+                    <div class="chain-link horizontal" style="left: 130px; top: 199px;"></div>
+                    <div class="chain-link horizontal" style="left: 240px; top: 199px;"></div>
+                    <div class="chain-link horizontal" style="left: 130px; top: 309px;"></div>
+                    <div class="chain-link horizontal" style="left: 240px; top: 309px;"></div>
+                    <div class="chain-link vertical" style="left: 89px; top: 130px;"></div>
+                    <div class="chain-link vertical" style="left: 199px; top: 130px;"></div>
+                    <div class="chain-link vertical" style="left: 309px; top: 130px;"></div>
+                    <div class="chain-link vertical" style="left: 89px; top: 240px;"></div>
+                    <div class="chain-link vertical" style="left: 199px; top: 240px;"></div>
+                    <div class="chain-link vertical" style="left: 309px; top: 240px;"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-title">
+                <h2>Why Choose TenderChain?</h2>
+                <p>Experience the future of tender management with our comprehensive blockchain-based platform</p>
+            </div>
+            <div class="features-grid six-cards">
+                <div class="feature-card anti-corruption">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>Anti-Corruption Shield</h3>
+                    <p>Blockchain's immutable ledger eliminates opportunities for corruption, bribery, and backroom deals. Every transaction is permanently recorded and publicly auditable.</p>
+                </div>
+                <div class="feature-card transparency">
+                    <div class="feature-icon">🔍</div>
+                    <h3>Complete Transparency</h3>
+                    <p>Every bid, evaluation, and decision is recorded on the blockchain. Citizens and stakeholders can track tender processes in real-time, ensuring accountability.</p>
+                </div>
+                <div class="feature-card automation">
+                    <div class="feature-icon">🤖</div>
+                    <h3>Smart Contract Automation</h3>
+                    <p>Automated evaluation criteria prevent human bias and manipulation. Smart contracts execute payments and compliance checks without human intervention.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💰</div>
+                    <h3>Cost Reduction</h3>
+                    <p>Eliminate intermediaries, reduce paperwork, and minimize administrative overhead. Blockchain reduces tender processing costs by up to 60%.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚖️</div>
+                    <h3>Fair Competition</h3>
+                    <p>Equal access to tender information and automated evaluation ensures fair competition. Small businesses compete on merit, not connections.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Performance Analytics</h3>
+                    <p>Real-time dashboards track tender performance, completion rates, and budget utilization. Data-driven insights improve future projects.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem-Solution Comparison -->
+    <section class="problem-solution">
+        <div class="container">
+            <div class="section-title">
+                <h2>Solving Real-World Problems</h2>
+                <p>See how TenderChain addresses critical issues in traditional tender management systems</p>
+            </div>
+            <div class="comparison-grid">
+                <div class="problem-side">
+                    <h3>❌ Traditional Problems</h3>
+                    <div class="issue-item">
+                        <h4>🏛️ Corruption & Bribery</h4>
+                        <p>Opaque processes allow for under-the-table deals, kickbacks, and favoritism. Officials can manipulate evaluations for personal gain.</p>
+                    </div>
+                    <div class="issue-item">
+                        <h4>📄 Document Tampering</h4>
+                        <p>Paper-based systems are vulnerable to document forgery, data manipulation, and selective disclosure of information.</p>
+                    </div>
+                    <div class="issue-item">
+                        <h4>⏰ Lengthy Processing</h4>
+                        <p>Manual evaluations take months, causing project delays and increased costs. Bureaucratic bottlenecks slow down development.</p>
+                    </div>
+                    <div class="issue-item">
+                        <h4>🚫 Limited Access</h4>
+                        <p>Small businesses lack access to tender information or face discriminatory practices, reducing healthy competition.</p>
+                    </div>
+                    <div class="issue-item">
+                        <h4>💸 Budget Overruns</h4>
+                        <p>Lack of transparency leads to inflated costs, unnecessary expenses, and misallocation of public funds.</p>
+                    </div>
+                </div>
+                <div class="solution-side">
+                    <h3>✅ TenderChain Solutions</h3>
+                    <div class="solution-item">
+                        <h4>🔐 Immutable Transparency</h4>
+                        <p>Every action is permanently recorded on blockchain. No one can alter, delete, or hide tender data. Complete audit trail for accountability.</p>
+                    </div>
+                    <div class="solution-item">
+                        <h4>🛡️ Tamper-Proof Records</h4>
+                        <p>Cryptographic security ensures document integrity. Digital signatures and hash verification prevent any unauthorized changes.</p>
+                    </div>
+                    <div class="solution-item">
+                        <h4>⚡ Automated Processing</h4>
+                        <p>Smart contracts automate evaluation, scoring, and selection. Reduce processing time from months to days with consistent criteria.</p>
+                    </div>
+                    <div class="solution-item">
+                        <h4>🌍 Global Accessibility</h4>
+                        <p>Web-based platform accessible 24/7 from anywhere. Equal opportunity for all qualified bidders regardless of size or location.</p>
+                    </div>
+                    <div class="solution-item">
+                        <h4>📈 Budget Optimization</h4>
+                        <p>Real-time budget tracking and automated payments prevent cost overruns. Transparent spending builds public trust and confidence.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Statistics Section -->
+    <section class="statistics">
+        <div class="container">
+            <div class="stats-header">
+                <h2 class="catchy-line">From On-paper to On-chain: All attributes inherited, with additional security</h2>
+                <p>Transforming traditional government procurement systems with blockchain's immutable ledger</p>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card corruption">
+                    <div class="stat-number" data-count="60">0</div>
+                    <div class="stat-label">% Cost Reduction</div>
+                    <div class="stat-description">Average savings from eliminating intermediaries and reducing administrative overhead</div>
+                </div>
+                <div class="stat-card efficiency">
+                    <div class="stat-number" data-count="85">0</div>
+                    <div class="stat-label">% Faster Processing</div>
+                    <div class="stat-description">Reduction in tender processing time through smart contract automation</div>
+                </div>
+                <div class="stat-card corruption">
+                    <div class="stat-number" data-count="31">0</div>
+                    <div class="stat-label">% of GDP Lost to Corruption</div>
+                    <div class="stat-description">Annual losses in developing countries due to corruption in government procurement</div>
+                </div>
+                <div class="stat-card efficiency">
+                    <div class="stat-number" data-count="99.9">0</div>
+                    <div class="stat-label">% Data Integrity</div>
+                    <div class="stat-description">Guaranteed data accuracy and tamper-proof records through blockchain technology</div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Corruption Data Section -->
+    <section class="corruption-data">
+        <div class="container">
+            <div class="section-title">
+                <h2>Corruption in Public Procurement</h2>
+                <p>Detailed analysis of corruption metrics in countries with paper-based tender systems</p>
+            </div>
+            <div class="charts-container">
+                <div class="chart-card">
+                    <div class="chart-title">Corruption by Country (Paper-based Systems)</div>
+                    <div class="bar-chart">
+                        <div class="bar" style="--bar-height: 70%;">
+                            <div class="bar-value">70%</div>
+                            <div class="bar-label">India</div>
+                        </div>
+                        <div class="bar" style="--bar-height: 65%;">
+                            <div class="bar-value">65%</div>
+                            <div class="bar-label">Russia</div>
+                        </div>
+                        <div class="bar" style="--bar-height: 58%;">
+                            <div class="bar-value">58%</div>
+                            <div class="bar-label">Brazil</div>
+                        </div>
+                        <div class="bar" style="--bar-height: 45%;">
+                            <div class="bar-value">45%</div>
+                            <div class="bar-label">China</div>
+                        </div>
+                        <div class="bar positive" style="--bar-height: 12%;">
+                            <div class="bar-value">12%</div>
+                            <div class="bar-label">Blockchain</div>
+                        </div>
+                    </div>
+                    <p style="text-align: center; margin-top: 3rem; font-size: 0.9rem; opacity: 0.8;">Percentage of government tenders with reported irregularities (2022)</p>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">Types of Tender Fraud in Paper Systems</div>
+                    <div class="pie-chart">
+                        <div class="pie-center">2023</div>
+                    </div>
+                    <div class="pie-legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #e74c3c;"></div>
+                            <span>Bid Rigging (30%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #f39c12;"></div>
+                            <span>Document Tampering (20%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #2ecc71;"></div>
+                            <span>Fake Competition (20%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #3498db;"></div>
+                            <span>Bribery (30%)</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">Lost Government Funds Due to Tender Corruption</div>
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>India</span>
+                            <span>₹92,000 Crore Annually</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill high" style="--progress-width: 92%;"></div>
+                        </div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Russia</span>
+                            <span>$33 Billion Annually</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill high" style="--progress-width: 88%;"></div>
+                        </div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Brazil</span>
+                            <span>R$200 Billion Annually</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill high" style="--progress-width: 82%;"></div>
+                        </div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>EU</span>
+                            <span>€120 Billion Annually</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill medium" style="--progress-width: 60%;"></div>
+                        </div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Blockchain-enabled</span>
+                            <span>1-3% Loss Potential</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill low" style="--progress-width: 3%;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">Time from Tender to Award (Days)</div>
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Traditional Paper System</span>
+                            <span>90-180 days</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill high" style="--progress-width: 90%;"></div>
+                        </div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Basic Digital System</span>
+                            <span>45-90 days</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill medium" style="--progress-width: 60%;"></div>
+                        </div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Blockchain-based System</span>
+                            <span>7-14 days</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill low" style="--progress-width: 10%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- India Focus Section -->
+    <section class="india-stats">
+        <div class="container">
+            <div class="section-title">
+                <h2>India's Public Procurement Challenge</h2>
+                <p>How blockchain is revolutionizing government tender management in India</p>
+            </div>
+            <div class="india-grid">
+                <div class="india-card">
+                    <h3>Paper-based Tender Issues</h3>
+                    <div class="india-card-content">
+                        <p>Despite digital initiatives, <span class="counter-animation">76%</span> of Indian government procurement still relies on paper documentation at some stage of the process, creating opportunities for manipulation and corruption.</p>
+                        <p>Manual verification processes delay project timelines by an average of <span class="counter-animation">112</span> days per tender.</p>
+                        <p>Physical document handling leads to <span class="counter-animation">34%</span> higher administrative costs and increases the risk of document loss or tampering.</p>
+                        <p>Regional language barriers in paper systems exclude <span class="counter-animation">28%</span> of qualified vendors from participating effectively.</p>
+                    </div>
+                </div>
+                <div class="india-card">
+                    <h3>Economic Impact</h3>
+                    <div class="india-card-content">
+                        <p>India loses approximately <span class="counter-animation">₹92,000 crore</span> annually to corruption in government procurement - equivalent to <span class="counter-animation">4.1%</span> of the total government budget.</p>
+                        <p>Small businesses lose access to <span class="counter-animation">68%</span> of potential government contracts due to unfair practices and information asymmetry.</p>
+                        <p>Inflated contract values due to corruption result in <span class="counter-animation">23%</span> higher project costs on average.</p>
+                        <p>Economic growth potential is reduced by <span class="counter-animation">1.2%</span> annually due to inefficient resource allocation in public projects.</p>
+                    </div>
+                </div>
+                <div class="india-card">
+                    <h3>Transparency Deficit</h3>
+                    <div class="india-card-content">
+                        <p>Only <span class="counter-animation">22%</span> of government tenders in India provide complete transparency in evaluation criteria and decision-making processes.</p>
+                        <p><span class="counter-animation">83%</span> of rejected bidders report lack of clear feedback on why their bids were unsuccessful.</p>
+                        <p>Public access to tender information is limited, with <span class="counter-animation">67%</span> of citizens unaware of government procurement activities in their area.</p>
+                        <p>Audit trails are incomplete in <span class="counter-animation">71%</span> of traditional tender processes, making post-implementation reviews difficult.</p>
+                    </div>
+                </div>
+                <div class="india-card">
+                    <h3>Blockchain Solution Impact</h3>
+                    <div class="india-card-content">
+                        <p>Early blockchain implementations in state-level procurement have shown a <span class="counter-animation">94%</span> reduction in reported irregularities.</p>
+                        <p>Processing time reduced by <span class="counter-animation">85%</span> while increasing participating vendors by <span class="counter-animation">47%</span>.</p>
+                        <p>Cost savings of <span class="counter-animation">31%</span> achieved through elimination of intermediaries and automated processes.</p>
+                        <p>Public trust in government procurement increased by <span class="counter-animation">56%</span> in blockchain-enabled districts.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Global Comparison Section -->
+    <section class="global-comparison">
+        <div class="container">
+            <div class="section-title">
+                <h2>Global Corruption Perception Index</h2>
+                <p>Comparing tender systems across different countries</p>
+            </div>
+            <div class="comparison-chart">
+                <div class="country-card">
+                    <div class="country-flag">🇩🇰</div>
+                    <h3>Denmark</h3>
+                    <div class="country-score score-high">88/100</div>
+                    <p>Digital tender system with strong audit controls</p>
+                </div>
+                <div class="country-card">
+                    <div class="country-flag">🇸🇬</div>
+                    <h3>Singapore</h3>
+                    <div class="country-score score-high">85/100</div>
+                    <p>Early blockchain tender adoption since 2019</p>
+                </div>
+                <div class="country-card">
+                    <div class="country-flag">🇺🇸</div>
+                    <h3>United States</h3>
+                    <div class="country-score score-medium">67/100</div>
+                    <p>Mixed digital and paper-based systems</p>
+                </div>
+                <div class="country-card">
+                    <div class="country-flag">🇮🇳</div>
+                    <h3>India</h3>
+                    <div class="country-score score-low">40/100</div>
+                    <p>Transitioning from paper to digital/blockchain</p>
+                </div>
+                <div class="country-card">
+                    <div class="country-flag">⛓️</div>
+                    <h3>TenderChain</h3>
+                    <div class="country-score score-high">95/100</div>
+                    <p>Setting new standards in procurement transparency</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works">
+        <div class="container">
+            <div class="section-title">
+                <h2>How TenderChain Works</h2>
+                <p>A step-by-step guide to our transparent and secure tender management process</p>
+            </div>
+            <div class="steps-container">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h4>Tender Creation</h4>
+                    <p>Government officers create tenders with detailed requirements, evaluation criteria, and budget allocations. All data is encrypted and stored on blockchain.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h4>Public Announcement</h4>
+                    <p>Tender details are automatically published on the platform, ensuring equal access for all potential bidders. Smart notifications alert relevant contractors.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h4>Bid Submission</h4>
+                    <p>Contractors submit sealed bids through secure blockchain transactions. Bids remain private until the submission deadline to ensure fairness.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">4</div>
+                    <h4>Automated Evaluation</h4>
+                    <p>Smart contracts automatically evaluate bids against predefined criteria. Scoring is transparent, consistent, and free from human bias or manipulation.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">5</div>
+                    <h4>Verification Process</h4>
+                    <p>Independent verifiers review technical aspects and compliance. Multi-signature approval ensures thorough validation before final decision.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">6</div>
+                    <h4>Award & Execution</h4>
+                    <p>Winning bid is announced with full justification. Smart contracts automatically handle payments, milestones, and performance tracking throughout project execution.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action -->
+    <section class="cta">
+        <div class="container">
+            <div class="cta-content">
+                <h2>Ready to Transform Your Tender Process?</h2>
+                <p>Join thousands of organizations already using TenderChain to make their tender processes more transparent, efficient, and secure.</p>
+                <div class="hero-buttons">
+                    <button id="ctaLaunchBtn" class="btn btn-primary">🚀 Launch App</button>
+                    <a href="technical-details.html" class="btn btn-outline">Learn More</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 TenderChain. All rights reserved.</p>
+            <p>Blockchain-powered tender management for the digital age.</p>
+            <div class="footer-links">
+                <a href="#privacy">Privacy Policy</a>
+                <a href="#terms">Terms of Service</a>
+                <a href="#support">Support</a>
+                <a href="#docs">Documentation</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Launch App functionality
+        function launchApp() {
+            // Open app page in new tab
+            const appWindow = window.open('app.html', '_blank');
+            
+            // Show crumb notification
+            showCrumbNotification();
+        }
+        
+        // Crumb notification system
+        function showCrumbNotification() {
+            // Create notification container
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: -400px;
+                background: linear-gradient(135deg, #28a745, #20c997);
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 12px;
+                box-shadow: 0 10px 30px rgba(40, 167, 69, 0.3);
+                z-index: 10000;
+                font-size: 0.95rem;
+                font-weight: 500;
+                display: flex;
+                align-items: center;
+                gap: 0.8rem;
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                max-width: 350px;
+                transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            `;
+            
+            notification.innerHTML = `
+                <div style="font-size: 1.2rem;">🚀</div>
+                <div>
+                    <div style="font-weight: 600; margin-bottom: 0.2rem;">App Launched Successfully!</div>
+                    <div style="font-size: 0.85rem; opacity: 0.9;">TenderChain portal opened in new tab</div>
+                </div>
+                <div style="margin-left: auto; cursor: pointer; padding: 0.2rem; border-radius: 50%; transition: background 0.2s ease;" onclick="this.parentElement.remove()">
+                    <div style="font-size: 0.8rem; opacity: 0.7;">✕</div>
+                </div>
+            `;
+            
+            // Add hover effect for close button
+            const closeBtn = notification.lastElementChild;
+            closeBtn.addEventListener('mouseenter', function() {
+                this.style.background = 'rgba(255, 255, 255, 0.2)';
+            });
+            closeBtn.addEventListener('mouseleave', function() {
+                this.style.background = 'transparent';
+            });
+            
+            document.body.appendChild(notification);
+            
+            // Slide in animation
+            setTimeout(() => {
+                notification.style.right = '20px';
+            }, 100);
+            
+            // Auto slide out after 4 seconds
+            setTimeout(() => {
+                notification.style.right = '-400px';
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateY(-10px)';
+                
+                // Remove from DOM after animation
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.remove();
+                    }
+                }, 400);
+            }, 4000);
+            
+            // Add click anywhere to dismiss
+            notification.addEventListener('click', function(e) {
+                if (e.target === this || e.target.closest('[onclick]')) {
+                    this.style.right = '-400px';
+                    this.style.opacity = '0';
+                    this.style.transform = 'translateY(-10px)';
+                    
+                    setTimeout(() => {
+                        if (this.parentElement) {
+                            this.remove();
+                        }
+                    }, 400);
+                }
+            });
+        }
+        
+        // Attach launch app functionality to all Launch App buttons
+        document.getElementById('launchAppBtn').addEventListener('click', launchApp);
+        document.getElementById('heroLaunchBtn').addEventListener('click', launchApp);
+        document.getElementById('ctaLaunchBtn').addEventListener('click', launchApp);
+
+        // Feature cards animation on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = 'fadeInUp 0.6s ease-out forwards';
+                }
+            });
+        }, observerOptions);
+
+        // Observe all feature cards
+        document.querySelectorAll('.feature-card').forEach(card => {
+            card.style.opacity = '0';
+            observer.observe(card);
+        });
+
+        // Add some interactive blockchain animation
+        const blocks = document.querySelectorAll('.block');
+        blocks.forEach((block, index) => {
+            block.addEventListener('mouseenter', function() {
+                this.style.transform = 'scale(1.2) rotate(5deg)';
+                this.style.background = 'rgba(255, 255, 255, 0.3)';
+            });
+            
+            block.addEventListener('mouseleave', function() {
+                this.style.transform = 'scale(1) rotate(0deg)';
+                this.style.background = 'rgba(255, 255, 255, 0.1)';
+            });
+        });
+
+        // Animated counter functionality
+        function animateCounter(element) {
+            const target = parseFloat(element.getAttribute('data-count'));
+            let count = 0;
+            const increment = target / 100; // Adjust speed here
+            
+            const updateCounter = () => {
+                if (count < target) {
+                    count += increment;
+                    if (target === 99.9) {
+                        element.textContent = count.toFixed(1);
+                    } else {
+                        element.textContent = Math.ceil(count);
+                    }
+                    requestAnimationFrame(updateCounter);
+                } else {
+                    if (target === 99.9) {
+                        element.textContent = target.toFixed(1);
+                    } else {
+                        element.textContent = target;
+                    }
+                }
+            };
+            
+            updateCounter();
+        }
+
+        // Observe statistics for counter animation
+        const statsObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const number = entry.target.querySelector('.stat-number');
+                    if (number && !number.classList.contains('animated')) {
+                        number.classList.add('animated');
+                        setTimeout(() => animateCounter(number), 200);
+                    }
+                }
+            });
+        }, { threshold: 0.5 });
+
+        // Observe all stat cards
+        document.querySelectorAll('.stat-card').forEach(card => {
+            statsObserver.observe(card);
+        });
+
+        // Enhanced step cards animation
+        const stepObserver = new IntersectionObserver((entries) => {
+            entries.forEach((entry, index) => {
+                if (entry.isIntersecting) {
+                    setTimeout(() => {
+                        entry.target.style.animation = 'fadeInUp 0.6s ease-out forwards';
+                    }, index * 100);
+                }
+            });
+        }, { threshold: 0.3 });
+
+        document.querySelectorAll('.step-card').forEach(card => {
+            card.style.opacity = '0';
+            stepObserver.observe(card);
+        });
+
+        // Problem-solution items animation
+        const problemSolutionObserver = new IntersectionObserver((entries) => {
+            entries.forEach((entry, index) => {
+                if (entry.isIntersecting) {
+                    setTimeout(() => {
+                        entry.target.style.animation = 'fadeInUp 0.6s ease-out forwards';
+                    }, index * 100);
+                }
+            });
+        }, { threshold: 0.2 });
+
+        document.querySelectorAll('.issue-item, .solution-item').forEach(item => {
+            item.style.opacity = '0';
+            problemSolutionObserver.observe(item);
+        });
+
+        // Add interactive hover effects for feature cards
+        document.querySelectorAll('.feature-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-15px) scale(1.03)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(-10px) scale(1.02)';
+            });
+        });
+
+        // Add parallax effect to hero section
+        window.addEventListener('scroll', function() {
+            const scrolled = window.pageYOffset;
+            const hero = document.querySelector('.hero');
+            const heroContent = document.querySelector('.hero-content');
+            const blockchainVisual = document.querySelector('.blockchain-visual');
+            
+            if (hero) {
+                hero.style.transform = `translateY(${scrolled * 0.5}px)`;
+            }
+            
+            if (heroContent && scrolled < window.innerHeight) {
+                heroContent.style.transform = `translateY(${scrolled * 0.2}px)`;
+            }
+            
+            if (blockchainVisual && scrolled < window.innerHeight) {
+                blockchainVisual.style.transform = `translateY(${scrolled * -0.1}px) rotate(${scrolled * 0.1}deg)`;
+            }
+        });
+
+        // Add typing effect to hero title
+        function typeWriter(element, text, speed = 100) {
+            let i = 0;
+            element.innerHTML = '';
+            
+            function typing() {
+                if (i < text.length) {
+                    element.innerHTML += text.charAt(i);
+                    i++;
+                    setTimeout(typing, speed);
+                }
+            }
+            
+            typing();
+        }
+
+        // Initialize typing effect when page loads
+        window.addEventListener('load', function() {
+            const heroTitle = document.querySelector('.hero-content h1');
+            if (heroTitle) {
+                const originalText = heroTitle.textContent;
+                setTimeout(() => typeWriter(heroTitle, originalText, 50), 1000);
+            }
+        });
+
+        // Add floating animation to blockchain blocks
+        function addFloatingAnimation() {
+            document.querySelectorAll('.block').forEach((block, index) => {
+                const delay = index * 0.2;
+                const duration = 3 + Math.random() * 2;
+                
+                block.style.animation = `pulse ${duration}s ease-in-out infinite, float ${duration * 2}s ease-in-out infinite`;
+                block.style.animationDelay = `${delay}s`;
+            });
+        }
+
+        // Initialize floating animation
+        addFloatingAnimation();
+
+        // Advanced SaaS-style animations
+        function initSectionAnimations() {
+            // Section transition observer
+            const sectionObserver = new IntersectionObserver((entries) => {
+                entries.forEach((entry, index) => {
+                    if (entry.isIntersecting) {
+                        setTimeout(() => {
+                            entry.target.classList.add('visible');
+                        }, index * 150);
+                    }
+                });
+            }, { threshold: 0.15, rootMargin: '-50px' });
+
+            // Observe all sections
+            document.querySelectorAll('section').forEach(section => {
+                section.classList.add('section-transition');
+                sectionObserver.observe(section);
+            });
+
+            // Staggered items observer
+            const staggerObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const items = entry.target.querySelectorAll('.stagger-item');
+                        items.forEach((item, index) => {
+                            setTimeout(() => {
+                                item.classList.add('visible');
+                            }, index * 100);
+                        });
+                    }
+                });
+            }, { threshold: 0.2 });
+
+            // Add stagger items
+            document.querySelectorAll('.feature-card, .issue-item, .solution-item, .step-card, .stat-card').forEach(item => {
+                item.classList.add('stagger-item');
+            });
+
+            document.querySelectorAll('.features-grid, .comparison-grid, .steps-container, .stats-grid').forEach(container => {
+                staggerObserver.observe(container);
+            });
+        }
+
+        // Advanced scroll effects
+        function addScrollEffects() {
+            let ticking = false;
+            
+            function updateScrollEffects() {
+                const scrolled = window.pageYOffset;
+                const viewHeight = window.innerHeight;
+                
+                // Parallax for different elements
+                document.querySelectorAll('.feature-card').forEach((card, index) => {
+                    const rect = card.getBoundingClientRect();
+                    if (rect.top < viewHeight && rect.bottom > 0) {
+                        const speed = 0.5 + (index % 3) * 0.2;
+                        const yPos = (rect.top - viewHeight) * speed;
+                        card.style.transform = `translateY(${yPos}px)`;
+                    }
+                });
+
+                // Scale effect for stat cards
+                document.querySelectorAll('.stat-card').forEach(card => {
+                    const rect = card.getBoundingClientRect();
+                    const center = viewHeight / 2;
+                    const distance = Math.abs(rect.top + rect.height / 2 - center);
+                    const scale = Math.max(0.8, 1 - distance / viewHeight / 2);
+                    card.style.transform = `scale(${scale})`;
+                });
+
+                // Rotate step numbers
+                document.querySelectorAll('.step-number').forEach(num => {
+                    const rect = num.getBoundingClientRect();
+                    if (rect.top < viewHeight && rect.bottom > 0) {
+                        const progress = 1 - (rect.top / viewHeight);
+                        const rotation = progress * 360;
+                        num.style.transform = `rotate(${rotation}deg)`;
+                    }
+                });
+
+                ticking = false;
+            }
+
+            function requestScrollUpdate() {
+                if (!ticking) {
+                    requestAnimationFrame(updateScrollEffects);
+                    ticking = true;
+                }
+            }
+
+            window.addEventListener('scroll', requestScrollUpdate);
+        }
+
+        // Particle system for hero section
+        function createParticles() {
+            const hero = document.querySelector('.hero');
+            const particleCount = 20;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 6 + 's';
+                particle.style.animationDuration = (4 + Math.random() * 4) + 's';
+                hero.appendChild(particle);
+            }
+        }
+
+        // Morphing background shapes
+        function addMorphingShapes() {
+            const sections = document.querySelectorAll('.problem-solution, .statistics');
+            
+            sections.forEach(section => {
+                const shape = document.createElement('div');
+                shape.style.cssText = `
+                    position: absolute;
+                    top: 20%;
+                    right: 10%;
+                    width: 200px;
+                    height: 200px;
+                    background: linear-gradient(45deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+                    animation: morphBackground 8s ease-in-out infinite;
+                    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+                    z-index: 0;
+                `;
+                section.style.position = 'relative';
+                section.appendChild(shape);
+            });
+        }
+
+        // Add glow effects to buttons
+        function addGlowEffects() {
+            document.querySelectorAll('.btn').forEach(btn => {
+                btn.classList.add('glow');
+            });
+        }
+
+        // Intersection-based reveal animations
+        function addRevealAnimations() {
+            const revealObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('reveal');
+                    }
+                });
+            }, { threshold: 0.1, rootMargin: '0px 0px -100px 0px' });
+
+            document.querySelectorAll('.section-title h2, .section-title p').forEach(element => {
+                element.style.opacity = '0';
+                revealObserver.observe(element);
+            });
+        }
+
+        // Advanced hover interactions
+        function addAdvancedHovers() {
+            // Feature cards magnetic effect
+            document.querySelectorAll('.feature-card').forEach(card => {
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left - rect.width / 2;
+                    const y = e.clientY - rect.top - rect.height / 2;
+                    
+                    const moveX = x * 0.1;
+                    const moveY = y * 0.1;
+                    
+                    card.style.transform = `translateY(-10px) scale(1.02) rotateX(${moveY * 0.1}deg) rotateY(${moveX * 0.1}deg)`;
+                });
+                
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'translateY(0) scale(1) rotateX(0) rotateY(0)';
+                });
+            });
+
+            // Step cards wave effect
+            document.querySelectorAll('.step-card').forEach((card, index) => {
+                card.addEventListener('mouseenter', () => {
+                    // Create ripple effect
+                    const ripple = document.createElement('div');
+                    ripple.style.cssText = `
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        width: 0;
+                        height: 0;
+                        border-radius: 50%;
+                        background: rgba(102, 126, 234, 0.2);
+                        transform: translate(-50%, -50%);
+                        animation: ripple 0.8s ease-out;
+                        pointer-events: none;
+                    `;
+                    
+                    const style = document.createElement('style');
+                    style.textContent = `
+                        @keyframes ripple {
+                            to {
+                                width: 300px;
+                                height: 300px;
+                                opacity: 0;
+                            }
+                        }
+                    `;
+                    
+                    if (!document.querySelector('#ripple-style')) {
+                        style.id = 'ripple-style';
+                        document.head.appendChild(style);
+                    }
+                    
+                    card.style.position = 'relative';
+                    card.appendChild(ripple);
+                    
+                    setTimeout(() => {
+                        ripple.remove();
+                    }, 800);
+                });
+            });
+        }
+
+        // Text reveal animation
+        function addTextRevealAnimations() {
+            const textObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const text = entry.target.textContent;
+                        entry.target.innerHTML = '';
+                        
+                        text.split('').forEach((char, index) => {
+                            const span = document.createElement('span');
+                            span.textContent = char === ' ' ? '\u00A0' : char;
+                            span.style.opacity = '0';
+                            span.style.transform = 'translateY(20px)';
+                            span.style.transition = `all 0.3s ease ${index * 0.02}s`;
+                            entry.target.appendChild(span);
+                            
+                            setTimeout(() => {
+                                span.style.opacity = '1';
+                                span.style.transform = 'translateY(0)';
+                            }, 100);
+                        });
+                    }
+                });
+            }, { threshold: 0.8 });
+
+            document.querySelectorAll('.feature-card h3, .step-card h4').forEach(title => {
+                textObserver.observe(title);
+            });
+        }
+
+        // Initialize all animations
+        function initializeAnimations() {
+            setTimeout(() => {
+                initSectionAnimations();
+                addScrollEffects();
+                createParticles();
+                addMorphingShapes();
+                addGlowEffects();
+                addRevealAnimations();
+                addAdvancedHovers();
+                addTextRevealAnimations();
+            }, 100);
+        }
+
+        // Start animations when page is loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeAnimations);
+        } else {
+            initializeAnimations();
+        }
+    </script>
+    <!-- Modern Dark Mode Toggle Button -->
+    <button class="theme-toggle" id="themeToggle" title="Toggle Dark/Light Mode">
+        <div class="theme-toggle-slider" id="themeIcon">🌙</div>
+    </button>
+
+    <script>
+        // Enhanced dark mode toggle functionality
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const html = document.documentElement;
+        
+        // Check for saved theme preference or default to 'light'
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        html.setAttribute('data-theme', currentTheme);
+        themeIcon.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+        
+        themeToggle.addEventListener('click', function() {
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            themeIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+            
+            // Add a smooth transition effect
+            themeToggle.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                themeToggle.style.transform = 'scale(1)';
+            }, 150);
+        });
+        
+        // Add loading animation on page load
+        window.addEventListener('load', function() {
+            themeToggle.style.animation = 'fadeInUp 0.6s ease-out 0.5s both';
+        });
+    </script>
+
+</body>
+</html>

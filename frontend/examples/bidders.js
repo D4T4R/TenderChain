@@ -9,8 +9,13 @@ Vue.component('existing-tenders', {
       existingTenders:[]
     }
   },
-  mounted(){
-    this.existingTenders = getExistingTenders();
+  async mounted(){
+    try {
+      this.existingTenders = await getExistingTenders();
+    } catch (error) {
+      console.error('Error loading existing tenders:', error);
+      this.existingTenders = [];
+    }
   },
   methods: {
       placeBids : function(event){
@@ -70,46 +75,50 @@ Vue.component('place-bid', {
       quotedamount:[]     
     }
   },
-  mounted(){
-    var res = getTenderInfo(current_tender_address);
-    var basic = res.basic;
-    var advanced = res.advanced;
-    this.name = basic.tenderName;
-    this.id = basic.tenderId;
-    this.coverCount = basic.covers;
-    this.bidSubmissionClosingDate = basic.bidSubmissionClosingDate;
-    this.bidOpeningDate = basic.bidOpeningDate;
+  async mounted(){
+    try {
+      var res = await getTenderInfo(current_tender_address);
+      if (res) {
+        var basic = res.basic;
+        var advanced = res.advanced;
+        this.name = basic.tenderName;
+        this.id = basic.tenderId;
+        this.coverCount = basic.covers;
+        this.bidSubmissionClosingDate = basic.bidSubmissionClosingDate;
+        this.bidOpeningDate = basic.bidOpeningDate;
 
-    var clauses = advanced.clauses;
-    var len = clauses.length;
-    clauseCount = len;
+        var clauses = advanced.clauses;
+        var len = clauses.length;
+        clauseCount = len;
 
-    for(var i=0;i<len;i++){
-      this.clauses.push({
-        name:clauses[i]
-      });
+        for(var i=0;i<len;i++){
+          this.clauses.push({
+            name:clauses[i]
+          });
+        }
+
+        var constraints = advanced.constraints;
+        var clen = constraints.length;
+        for(var i =0;i<clen;i++){
+          this.constraints.push({
+            name:constraints[i]
+          });
+        }
+
+        var tasks = advanced.taskName;
+        var taskdays = advanced.taskDays;
+        var tlen = taskdays.length;
+
+        for(var i=0;i<tlen;i++){
+          this.milestones.push({
+            name:tasks[i],
+            days:taskdays[i]
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error loading tender info:', error);
     }
-
-
-    var constraints = advanced.constraints;
-    var clen = constraints.length;
-    for(var i =0;i<clen;i++){
-      this.constraints.push({
-        name:constraints[i]
-      });
-    }
-
-    var tasks = advanced.taskName;
-    var taskdays = advanced.taskDays;
-    var tlen = taskdays.length;
-
-    for(var i=0;i<tlen;i++){
-      this.milestones.push({
-        name:tasks[i],
-        days:taskdays[i]
-      });
-    }
-
   },
   methods:{
 
@@ -141,19 +150,24 @@ Vue.component('active-contracts', {
       contracts:[]
     }
   },
-  mounted(){
-    var bidderAddress = "";
-    var res = getActiveContractsBasicInfo(bidderAddress);
-    var resActiveContracts = res.activeContracts;
-    var len = res.allInfo.length;
-    for(var i =0;i<len;i++){
-      var obj = res.allInfo[i];
-      this.contracts.push({
-        name: obj.contractName,
-        expectedCompletionDate: obj.completionDate,
-        creationDate: obj.creationDate,
-        address: resActiveContracts[i]
-      });
+  async mounted(){
+    try {
+      var bidderAddress = "";
+      var res = await getActiveContractsBasicInfo(bidderAddress);
+      var resActiveContracts = res.activeContracts;
+      var len = res.allInfo.length;
+      for(var i =0;i<len;i++){
+        var obj = res.allInfo[i];
+        this.contracts.push({
+          name: obj.contractName,
+          expectedCompletionDate: obj.completionDate,
+          creationDate: obj.creationDate,
+          address: resActiveContracts[i]
+        });
+      }
+    } catch (error) {
+      console.error('Error loading active contracts:', error);
+      this.contracts = [];
     }
   },
   methods: {

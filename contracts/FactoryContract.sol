@@ -15,7 +15,9 @@ contract FactoryContract {
         uint _finalQuotationAmount,
         string[] memory  _taskDescription, 
         uint[] memory _deadlineForEachTask, 
-        uint[] memory  _amountForEachTask) public payable returns (Contract) {
+        uint[] memory  _amountForEachTask,
+        address[] memory _assignedVerifiers,
+        address _stakeManagerAddress) public payable returns (Contract) {
         
         Contract newContract = new Contract();
         
@@ -23,7 +25,9 @@ contract FactoryContract {
         _contractorAddress, 
         _tenderId,
         _completionTime,
-        _constraints
+        _constraints,
+        _assignedVerifiers,
+        _stakeManagerAddress
         );
 // string memory  _contractName, 
 //         uint _finalQuotationAmount,

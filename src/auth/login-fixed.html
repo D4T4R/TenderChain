@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - TenderChain</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Enhanced Dark Mode Variables */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --card-bg: #ffffff;
+            --card-shadow: rgba(0, 0, 0, 0.1);
+            --border-color: rgba(255, 255, 255, 0.2);
+            --accent-gradient: linear-gradient(135deg, #0f3460 0%, #1e3c72 100%);
+            --hero-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --success-bg: #d4edda;
+            --success-color: #155724;
+            --success-border: #c3e6cb;
+            --error-bg: #f8d7da;
+            --error-color: #721c24;
+            --error-border: #f5c6cb;
+            --info-bg: #e8f4fd;
+            --info-color: #0c5460;
+            --info-border: #bee5eb;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --text-primary: #ffffff;
+            --text-secondary: #e0e0e0;
+            --card-bg: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%);
+            --card-shadow: rgba(0, 0, 0, 0.8);
+            --border-color: rgba(255, 255, 255, 0.15);
+            --accent-gradient: linear-gradient(135deg, #4a90e2 0%, #7b68ee 100%);
+            --hero-gradient: linear-gradient(135deg, #000000 0%, #1a1a1a 25%, #2d2d2d 50%, #1a1a1a 75%, #000000 100%);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --success-bg: rgba(40, 167, 69, 0.2);
+            --success-color: #4ade80;
+            --success-border: rgba(40, 167, 69, 0.3);
+            --error-bg: rgba(220, 53, 69, 0.2);
+            --error-color: #f87171;
+            --error-border: rgba(220, 53, 69, 0.3);
+            --info-bg: rgba(52, 144, 220, 0.2);
+            --info-color: #60a5fa;
+            --info-border: rgba(52, 144, 220, 0.3);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--hero-gradient);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .container {
+            background: var(--card-bg);
+            border-radius: 15px;
+            box-shadow: 0 20px 40px var(--card-shadow);
+            border: 1px solid var(--border-color);
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            animation: slideIn 0.6s ease-out;
+            backdrop-filter: blur(20px);
+        }
+
+        [data-theme="dark"] .container {
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .status-section {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+            background: #dc3545;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+        }
+
+        .connect-btn {
+            background: #f6851b;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .connect-btn:hover:not(:disabled) {
+            background: #e2761b;
+            transform: translateY(-2px);
+        }
+
+        .connect-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .user-selector {
+            display: flex;
+            margin-bottom: 25px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .user-option {
+            flex: 1;
+            padding: 15px;
+            background: var(--glass-bg);
+            color: var(--text-primary);
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .user-option.active {
+            background: var(--accent-gradient);
+            color: white;
+        }
+
+        .user-option:hover:not(.active) {
+            background: var(--glass-bg);
+            transform: translateY(-1px);
+        }
+
+        .login-btn {
+            width: 100%;
+            background: var(--accent-gradient);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .login-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .login-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .message.error {
+            background: var(--error-bg);
+            color: var(--error-color);
+            border: 1px solid var(--error-border);
+        }
+
+        .message.success {
+            background: var(--success-bg);
+            color: var(--success-color);
+            border: 1px solid var(--success-border);
+        }
+
+        .account-info {
+            background: var(--info-bg);
+            border: 1px solid var(--info-border);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 15px 0;
+            text-align: center;
+            font-size: 12px;
+            color: var(--info-color);
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .register-link a {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 500;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .register-link a:hover {
+            text-decoration: underline;
+        }
+
+        /* Modern Dark Mode Toggle Button */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 25px;
+            width: 50px;
+            height: 28px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 4px 15px var(--card-shadow);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            padding: 2px;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+
+        .theme-toggle-slider {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: white;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transform: translateX(0);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        [data-theme="dark"] .theme-toggle {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .theme-toggle-slider {
+            transform: translateX(22px);
+            background: linear-gradient(135deg, #ffd700 0%, #ff6b35 100%);
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+        }
+
+        .theme-toggle:active .theme-toggle-slider {
+            transform: scale(0.9) translateX(var(--slider-position, 0));
+        }
+
+        [data-theme="dark"] .theme-toggle:active .theme-toggle-slider {
+            transform: scale(0.9) translateX(22px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Login</h1>
+        <p class="subtitle">Access TenderChain System</p>
+
+        <div id="message" class="message"></div>
+
+        <div class="status-section">
+            <div class="status-row">
+                <div id="statusDot" class="status-dot"></div>
+                <span id="statusText">MetaMask Not Connected</span>
+            </div>
+            <button id="connectBtn" class="connect-btn">Connect MetaMask</button>
+            <div id="accountInfo" class="account-info"></div>
+        </div>
+
+        <div class="user-selector">
+            <button type="button" class="user-option active" data-type="contractor">
+                🔨 Contractor
+            </button>
+            <button type="button" class="user-option" data-type="officer">
+                🏛️ Government Officer
+            </button>
+            <button type="button" class="user-option" data-type="verifier">
+                🔍 Verifier
+            </button>
+        </div>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Connecting...</p>
+        </div>
+
+        <button id="loginBtn" class="login-btn" disabled>
+            Login to Dashboard
+        </button>
+
+        <div class="register-link">
+            <p>Don't have an account? <a href="register-fixed.html">Register here</a></p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
+    <script>
+        class Web3LoginManager {
+            constructor() {
+                this.web3 = null;
+                this.account = null;
+                this.userType = 'contractor';
+                this.isConnected = false;
+                
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.checkWeb3();
+            }
+
+            checkWeb3() {
+                if (typeof Web3 === 'undefined') {
+                    this.showMessage('Web3.js failed to load. Please refresh the page.', 'error');
+                    return false;
+                }
+                console.log('✅ Web3.js loaded successfully');
+                return true;
+            }
+
+            bindEvents() {
+                // Connect button
+                document.getElementById('connectBtn').addEventListener('click', () => {
+                    this.connectWallet();
+                });
+
+                // User type selection
+                document.querySelectorAll('.user-option').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.selectUserType(e.target.dataset.type);
+                    });
+                });
+
+                // Login button
+                document.getElementById('loginBtn').addEventListener('click', () => {
+                    this.handleLogin();
+                });
+            }
+
+            selectUserType(type) {
+                this.userType = type;
+                document.querySelectorAll('.user-option').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector(`[data-type="${type}"]`).classList.add('active');
+            }
+
+            async connectWallet() {
+                try {
+                    this.showLoading(true);
+                    this.hideMessage();
+
+                    // Check if MetaMask is installed
+                    if (typeof window.ethereum === 'undefined') {
+                        throw new Error('MetaMask is not installed. Please install MetaMask extension.');
+                    }
+
+                    console.log('🔍 MetaMask detected, creating Web3 instance...');
+                    this.web3 = new Web3(window.ethereum);
+
+                    console.log('🔑 Requesting account access...');
+                    const accounts = await window.ethereum.request({ 
+                        method: 'eth_requestAccounts' 
+                    });
+
+                    if (!accounts || accounts.length === 0) {
+                        throw new Error('No accounts found. Please unlock MetaMask and try again.');
+                    }
+
+                    this.account = accounts[0];
+                    this.isConnected = true;
+
+                    console.log('✅ Connected to account:', this.account);
+
+                    this.updateUI();
+                    this.showMessage('Successfully connected to MetaMask!', 'success');
+
+                } catch (error) {
+                    console.error('❌ Connection failed:', error);
+                    this.showMessage(error.message, 'error');
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            updateUI() {
+                const statusDot = document.getElementById('statusDot');
+                const statusText = document.getElementById('statusText');
+                const connectBtn = document.getElementById('connectBtn');
+                const accountInfo = document.getElementById('accountInfo');
+                const loginBtn = document.getElementById('loginBtn');
+
+                if (this.isConnected) {
+                    statusDot.classList.add('connected');
+                    statusText.textContent = 'MetaMask Connected';
+                    connectBtn.textContent = 'Connected ✓';
+                    connectBtn.disabled = true;
+                    
+                    accountInfo.innerHTML = `
+                        <strong>Connected Account:</strong><br>
+                        ${this.account.substring(0, 6)}...${this.account.substring(38)}
+                    `;
+                    accountInfo.style.display = 'block';
+                    
+                    loginBtn.disabled = false;
+                } else {
+                    statusDot.classList.remove('connected');
+                    statusText.textContent = 'MetaMask Not Connected';
+                    connectBtn.textContent = 'Connect MetaMask';
+                    connectBtn.disabled = false;
+                    accountInfo.style.display = 'none';
+                    loginBtn.disabled = true;
+                }
+            }
+
+            async loadContracts() {
+                try {
+                    // Load contract addresses and ABIs from contracts.js
+                    const response = await fetch('../../web3/contracts.js');
+                    const contractsScript = await response.text();
+                    
+                    // Execute the contracts script to get CONTRACT_ADDRESSES and ABIs
+                    eval(contractsScript);
+                    
+                    // Initialize contract instances
+                    this.contracts = {};
+                    this.contracts.contractorRepo = new this.web3.eth.Contract(ContractorRepoAbi, CONTRACT_ADDRESSES.ContractorRepo);
+                    this.contracts.governmentOfficerRepo = new this.web3.eth.Contract(GovernmentOfficerRepoAbi, CONTRACT_ADDRESSES.GovernmentOfficerRepo);
+                    this.contracts.verifierRepo = new this.web3.eth.Contract(VerifierRepoAbi, CONTRACT_ADDRESSES.VerifierRepo || CONTRACT_ADDRESSES.Verifier);
+                    
+                    return true;
+                } catch (error) {
+                    console.error('Error loading contracts:', error);
+                    return false;
+                }
+            }
+            
+            async verifyUserRole(address, role) {
+                try {
+                    console.log(`Verifying ${role} role for address: ${address}`);
+                    
+                    switch(role) {
+                        case 'contractor':
+                            try {
+                                const contractorData = await this.contracts.contractorRepo.methods.getContractor(address).call();
+                                return contractorData && contractorData[0] && contractorData[0] !== '0x0000000000000000000000000000000000000000';
+                            } catch (e) {
+                                console.log('Contractor not found or error:', e.message);
+                                return false;
+                            }
+                            
+                        case 'officer':
+                            try {
+                                const officerData = await this.contracts.governmentOfficerRepo.methods.getGovernmentOfficer(address).call();
+                                return officerData && officerData[0] && officerData[0] !== '0x0000000000000000000000000000000000000000';
+                            } catch (e) {
+                                console.log('Government officer not found or error:', e.message);
+                                return false;
+                            }
+                            
+                        case 'verifier':
+                            try {
+                                // Try verifier-specific contract if available
+                                if (this.contracts.verifierRepo && this.contracts.verifierRepo.methods.getVerifier) {
+                                    const verifierData = await this.contracts.verifierRepo.methods.getVerifier(address).call();
+                                    return verifierData && verifierData[0] && verifierData[0] !== '0x0000000000000000000000000000000000000000';
+                                } else {
+                                    // Fallback: allow for demo purposes
+                                    console.log('Verifier contract not fully implemented, allowing access for demo');
+                                    return true;
+                                }
+                            } catch (e) {
+                                console.log('Verifier check failed, allowing for demo:', e.message);
+                                return true;
+                            }
+                            
+                        default:
+                            return false;
+                    }
+                } catch (error) {
+                    console.error('Error verifying user role:', error);
+                    return false;
+                }
+            }
+            
+            async requestSignature(address, role) {
+                try {
+                    const message = `Login to TenderChain as ${role}\nAddress: ${address}\nTimestamp: ${Date.now()}`;
+                    
+                    console.log('Requesting signature for message:', message);
+                    
+                    const signature = await window.ethereum.request({
+                        method: 'personal_sign',
+                        params: [this.web3.utils.utf8ToHex(message), address]
+                    });
+                    
+                    console.log('Signature received:', signature);
+                    return { message, signature };
+                } catch (error) {
+                    console.error('Error requesting signature:', error);
+                    throw error;
+                }
+            }
+
+            async handleLogin() {
+                if (!this.isConnected) {
+                    this.showMessage('Please connect MetaMask first.', 'error');
+                    return;
+                }
+
+                try {
+                    this.showLoading(true);
+                    this.hideMessage();
+
+                    // Load contracts
+                    console.log('🔄 Loading smart contracts...');
+                    if (!(await this.loadContracts())) {
+                        throw new Error('Failed to load smart contracts. Please try again.');
+                    }
+                    
+                    // Verify user role on blockchain
+                    console.log(`🔍 Verifying ${this.userType} role for address: ${this.account}`);
+                    const isValidRole = await this.verifyUserRole(this.account, this.userType);
+                    
+                    if (!isValidRole) {
+                        throw new Error(`Invalid address used for signing in. Use the address allocated to you during KYC process.`);
+                    }
+                    
+                    console.log('✅ Role verified, requesting signature...');
+                    
+                    // Request signature for authentication
+                    const authData = await this.requestSignature(this.account, this.userType);
+
+                    // Store authentication data
+                    localStorage.setItem('userType', this.userType);
+                    localStorage.setItem('userAccount', this.account);
+                    localStorage.setItem('userRole', this.userType);
+                    localStorage.setItem('authSignature', authData.signature);
+                    localStorage.setItem('authMessage', authData.message);
+                    localStorage.setItem('loginTime', Date.now().toString());
+                    localStorage.setItem('isVerified', 'true');
+
+                    this.showMessage('Authentication successful! Redirecting...', 'success');
+
+                    // Redirect based on user type
+                    setTimeout(() => {
+                        if (this.userType === 'contractor') {
+                            window.location.href = '../dashboards/dashboardContractor-modern.html';
+                        } else if (this.userType === 'verifier') {
+                            window.location.href = '../dashboards/dashboardVerifier-modern.html';
+                        } else {
+                            window.location.href = '../dashboards/dashboardGovernmentOfficer-modern.html';
+                        }
+                    }, 2000);
+
+                } catch (error) {
+                    console.error('❌ Authentication failed:', error);
+                    
+                    let errorMessage = error.message;
+                    if (error.code === 4001) {
+                        errorMessage = 'You rejected the signature request. Please try again and approve the signature to login.';
+                    } else if (error.code === -32602) {
+                        errorMessage = 'Invalid signature request. Please try again.';
+                    }
+                    
+                    this.showMessage(errorMessage, 'error');
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            showMessage(text, type) {
+                const message = document.getElementById('message');
+                message.textContent = text;
+                message.className = `message ${type}`;
+                message.style.display = 'block';
+            }
+
+            hideMessage() {
+                document.getElementById('message').style.display = 'none';
+            }
+
+            showLoading(show) {
+                document.getElementById('loading').style.display = show ? 'block' : 'none';
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Initializing TenderChain Login...');
+            new Web3LoginManager();
+        });
+    </script>
+
+    <!-- Modern Dark Mode Toggle Button -->
+    <button class="theme-toggle" id="themeToggle" title="Toggle Dark/Light Mode">
+        <div class="theme-toggle-slider" id="themeIcon">🌙</div>
+    </button>
+
+    <script>
+        // Enhanced dark mode toggle functionality
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const html = document.documentElement;
+        
+        // Check for saved theme preference or default to 'light'
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        html.setAttribute('data-theme', currentTheme);
+        themeIcon.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+        
+        themeToggle.addEventListener('click', function() {
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            themeIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+            
+            // Add a smooth transition effect
+            themeToggle.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                themeToggle.style.transform = 'scale(1)';
+            }, 150);
+        });
+        
+        // Add loading animation on page load
+        window.addEventListener('load', function() {
+            themeToggle.style.animation = 'fadeInUp 0.6s ease-out 0.5s both';
+        });
+        
+        // Add fade in animation keyframe
+        const fadeInStyle = document.createElement('style');
+        fadeInStyle.textContent = `
+            @keyframes fadeInUp {
+                from { opacity: 0; transform: translateY(30px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        `;
+        document.head.appendChild(fadeInStyle);
+    </script>
+
+</body>
+</html>

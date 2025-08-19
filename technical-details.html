@@ -1,0 +1,2498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TenderChain Technical Documentation - Blockchain Tender Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        /* Enhanced Dark Mode Variables */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-tertiary: #2c3e50;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --text-tertiary: #999999;
+            --text-light: rgba(255, 255, 255, 0.9);
+            --card-bg: #ffffff;
+            --card-shadow: rgba(0, 0, 0, 0.1);
+            --card-shadow-hover: rgba(102, 126, 234, 0.2);
+            --border-color: rgba(255, 255, 255, 0.2);
+            --nav-bg: rgba(255, 255, 255, 0.95);
+            --nav-shadow: rgba(0, 0, 0, 0.1);
+            --accent-gradient: linear-gradient(135deg, #0f3460 0%, #1e3c72 100%);
+            --hero-gradient: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #1e3c72 100%);
+            --card-border: transparent;
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --code-bg: #f8f9fa;
+            --code-border: #e9ecef;
+            --algorithm-bg: #fafbfc;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-tertiary: #111111;
+            --text-primary: #ffffff;
+            --text-secondary: #e0e0e0;
+            --text-tertiary: #b0b0b0;
+            --text-light: rgba(255, 255, 255, 0.95);
+            --card-bg: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%);
+            --card-shadow: rgba(0, 0, 0, 0.8);
+            --card-shadow-hover: rgba(255, 255, 255, 0.1);
+            --border-color: rgba(255, 255, 255, 0.15);
+            --nav-bg: rgba(0, 0, 0, 0.95);
+            --nav-shadow: rgba(0, 0, 0, 0.8);
+            --accent-gradient: linear-gradient(135deg, #4a90e2 0%, #7b68ee 100%);
+            --hero-gradient: linear-gradient(135deg, #000000 0%, #1a1a1a 25%, #2d2d2d 50%, #1a1a1a 75%, #000000 100%);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --code-bg: #1a1a1a;
+            --code-border: #333333;
+            --algorithm-bg: #0d1117;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Navigation */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: var(--nav-bg);
+            backdrop-filter: blur(20px);
+            padding: 1rem 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .navbar.scrolled {
+            background: var(--nav-bg);
+            box-shadow: 0 8px 32px var(--nav-shadow);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 500;
+            transition: color 0.3s ease;
+            position: relative;
+        }
+
+        .nav-links a:hover {
+            color: #667eea;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -5px;
+            left: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Hero Section */
+        .hero {
+            background: var(--hero-gradient);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="none"><circle cx="100" cy="100" r="3" fill="rgba(255,255,255,0.1)"/><circle cx="300" cy="200" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="500" cy="150" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="700" cy="300" r="3" fill="rgba(255,255,255,0.1)"/><circle cx="200" cy="400" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="600" cy="450" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="800" cy="200" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="150" cy="600" r="3" fill="rgba(255,255,255,0.1)"/><circle cx="450" cy="650" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="750" cy="700" r="2" fill="rgba(255,255,255,0.1)"/></svg>');
+            animation: float 20s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .hero-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-content h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+            animation: slideInLeft 1s ease-out;
+        }
+
+        .hero-content p {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 2rem;
+            animation: slideInLeft 1s ease-out 0.2s both;
+        }
+
+        .hero-visual {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: slideInRight 1s ease-out;
+        }
+
+        /* Technical Architecture Visual */
+        .tech-visual {
+            width: 450px;
+            height: 450px;
+            position: relative;
+            perspective: 1000px;
+        }
+
+        .blockchain-layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            animation: rotateBlockchain 20s linear infinite;
+        }
+
+        .blockchain-layer:nth-child(1) {
+            animation-delay: 0s;
+            transform: rotateX(0deg);
+        }
+
+        .blockchain-layer:nth-child(2) {
+            animation-delay: -7s;
+            transform: rotateX(60deg);
+        }
+
+        .blockchain-layer:nth-child(3) {
+            animation-delay: -14s;
+            transform: rotateX(120deg);
+        }
+
+        @keyframes rotateBlockchain {
+            0% { transform: rotateY(0deg); }
+            100% { transform: rotateY(360deg); }
+        }
+
+        .tech-node {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            animation: pulse 2s ease-in-out infinite;
+            font-size: 1.5rem;
+        }
+
+        .tech-node:nth-child(1) { top: 10%; left: 45%; animation-delay: 0s; }
+        .tech-node:nth-child(2) { top: 25%; right: 15%; animation-delay: 0.3s; }
+        .tech-node:nth-child(3) { bottom: 25%; right: 15%; animation-delay: 0.6s; }
+        .tech-node:nth-child(4) { bottom: 10%; left: 45%; animation-delay: 0.9s; }
+        .tech-node:nth-child(5) { bottom: 25%; left: 15%; animation-delay: 1.2s; }
+        .tech-node:nth-child(6) { top: 25%; left: 15%; animation-delay: 1.5s; }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.7; }
+            50% { transform: scale(1.1); opacity: 1; }
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .section {
+            padding: 6rem 0;
+            position: relative;
+        }
+
+        .section:nth-child(even) {
+            background: var(--bg-secondary);
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-title h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        [data-theme="dark"] .section-title h2 {
+            background: linear-gradient(135deg, #8a9cff 0%, #9d7bea 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-title p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Architecture Flow */
+        .architecture-flow {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 4rem;
+        }
+
+        .flow-step {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px var(--card-shadow);
+            border: 1px solid var(--card-border);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        [data-theme="dark"] .flow-step {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .flow-step::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+            transition: left 0.8s ease;
+        }
+
+        .flow-step:hover::before {
+            left: 100%;
+        }
+
+        .flow-step:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.2);
+        }
+
+        [data-theme="dark"] .flow-step:hover {
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .step-number {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            animation: rotateStep 3s ease-in-out infinite;
+        }
+
+        @keyframes rotateStep {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(180deg); }
+        }
+
+        .flow-step h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .flow-step p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Actors Section */
+        .actors-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+            margin-top: 4rem;
+        }
+
+        /* Center align the 5th card (uneven) */
+        .actors-grid .actor-card:nth-child(5) {
+            grid-column: 2 / 4;
+        }
+
+        .actor-card {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px var(--card-shadow);
+            border: 1px solid var(--card-border);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            height: 320px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .actor-card-content {
+            overflow-y: auto;
+            flex: 1;
+            padding-top: 1rem;
+        }
+
+        .actor-card-content::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .actor-card-content::-webkit-scrollbar-track {
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 2px;
+        }
+
+        .actor-card-content::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+        }
+
+        @media (max-width: 1200px) {
+            .actors-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .actor-card {
+                height: 280px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .actors-grid {
+                grid-template-columns: 1fr;
+            }
+            .actor-card {
+                height: auto;
+                min-height: 250px;
+            }
+        }
+
+        [data-theme="dark"] .actor-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .actor-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.2);
+        }
+
+        [data-theme="dark"] .actor-card:hover {
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .actor-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            animation: bounceActor 2s ease-in-out infinite;
+        }
+
+        @keyframes bounceActor {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        .actor-card h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .actor-card p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Smart Contract Code Section */
+        .code-section {
+            background: var(--bg-tertiary);
+            padding: 6rem 0;
+            color: white;
+        }
+
+        .code-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 3rem;
+            margin-top: 4rem;
+        }
+
+        @media (max-width: 1024px) {
+            .code-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .code-block {
+            background: var(--code-bg);
+            border: 1px solid var(--code-border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        [data-theme="dark"] .code-block {
+            background: var(--code-bg);
+            border: 1px solid var(--code-border);
+        }
+
+        .code-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .code-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 1s ease;
+        }
+
+        .code-block:hover .code-header::before {
+            left: 100%;
+        }
+
+        .code-content {
+            padding: 1.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: var(--text-primary);
+            background: var(--code-bg);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .code-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .code-content::-webkit-scrollbar-track {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .code-content::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 3px;
+        }
+
+        .keyword {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        .function {
+            color: #3498db;
+            font-weight: 600;
+        }
+
+        .variable {
+            color: #2ecc71;
+        }
+
+        .comment {
+            color: #95a5a6;
+            font-style: italic;
+        }
+
+        /* Algorithm Section */
+        .algorithm-section {
+            background: var(--algorithm-bg);
+        }
+
+        .algorithm-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-top: 4rem;
+        }
+
+        /* Force 4-column layout for 8 cards (4-4 arrangement) */
+        @media (min-width: 1200px) {
+            .algorithm-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+
+        .algorithm-card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px var(--card-shadow);
+            border: 1px solid var(--card-border);
+            transition: all 0.3s ease;
+        }
+
+        [data-theme="dark"] .algorithm-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .algorithm-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.2);
+        }
+
+        [data-theme="dark"] .algorithm-card:hover {
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .algorithm-header {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            color: white;
+            padding: 1.5rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .algorithm-content {
+            padding: 1.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: var(--text-primary);
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .algorithm-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .algorithm-content::-webkit-scrollbar-track {
+            background: rgba(46, 204, 113, 0.1);
+        }
+
+        .algorithm-content::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            border-radius: 3px;
+        }
+
+        /* Statistics and Performance */
+        .stats-section {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            color: white;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .stats-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="none"><circle cx="100" cy="100" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="300" cy="200" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="500" cy="150" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="700" cy="300" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="200" cy="400" r="2" fill="rgba(255,255,255,0.1)"/></svg>');
+            animation: float 25s ease-in-out infinite;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 3rem;
+            margin-top: 4rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3498db 0%, #2ecc71 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            animation: countUp 2s ease-out;
+        }
+
+        @keyframes countUp {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .stat-label {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-description {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            line-height: 1.4;
+        }
+
+        /* Technology Stack */
+        .tech-stack {
+            background: var(--bg-secondary);
+        }
+
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-top: 4rem;
+        }
+
+        /* Force 4-column layout for 8 cards (4-4 arrangement) on larger screens */
+        @media (min-width: 1200px) {
+            .tech-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 1199px) {
+            .tech-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 900px) {
+            .tech-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .tech-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .tech-item {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px var(--card-shadow);
+            border: 1px solid var(--card-border);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        [data-theme="dark"] .tech-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .tech-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #3498db, #2ecc71);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .tech-item:hover::before {
+            transform: scaleX(1);
+        }
+
+        .tech-item:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
+        }
+
+        [data-theme="dark"] .tech-item:hover {
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.5);
+        }
+
+        .tech-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+            animation: techFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes techFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .tech-item h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .tech-item p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Process Flow Diagram */
+        .process-flow {
+            background: var(--bg-primary);
+            position: relative;
+        }
+
+        .flow-diagram {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 4rem 0;
+            position: relative;
+        }
+
+        .flow-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transform: translateY(-50%);
+            border-radius: 3px;
+            animation: flowPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes flowPulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; box-shadow: 0 0 20px rgba(102, 126, 234, 0.5); }
+        }
+
+        .flow-nodes {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .flow-node {
+            width: 120px;
+            height: 120px;
+            background: var(--card-bg);
+            border: 3px solid #667eea;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #667eea;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.3s ease;
+            animation: nodeFloat 4s ease-in-out infinite;
+            box-shadow: 0 10px 30px var(--card-shadow);
+        }
+
+        [data-theme="dark"] .flow-node {
+            background: var(--card-bg);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .flow-node:nth-child(2) { animation-delay: 0.5s; }
+        .flow-node:nth-child(3) { animation-delay: 1s; }
+        .flow-node:nth-child(4) { animation-delay: 1.5s; }
+        .flow-node:nth-child(5) { animation-delay: 2s; }
+
+        @keyframes nodeFloat {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-15px) scale(1.1); }
+        }
+
+        .flow-node:hover {
+            transform: scale(1.2);
+            background: #667eea;
+            color: white;
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .flow-node span {
+            font-size: 0.7rem;
+            margin-top: 0.5rem;
+            line-height: 1;
+        }
+
+        /* Security Features */
+        .security-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 4rem;
+        }
+
+        .security-card {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px var(--card-shadow);
+            border: 1px solid var(--card-border);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        [data-theme="dark"] .security-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .security-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 50% 50%, rgba(231, 76, 60, 0.1), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .security-card:hover::before {
+            opacity: 1;
+        }
+
+        .security-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(231, 76, 60, 0.2);
+        }
+
+        [data-theme="dark"] .security-card:hover {
+            box-shadow: 0 20px 40px rgba(231, 76, 60, 0.4);
+        }
+
+        .security-icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: white;
+            margin-bottom: 1.5rem;
+            animation: securityPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes securityPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
+            50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
+        }
+
+        .security-card h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .security-card p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Implementation Timeline */
+        .timeline {
+            position: relative;
+            margin: 4rem 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 3px;
+            height: 100%;
+            background: linear-gradient(180deg, #667eea, #764ba2);
+            transform: translateX(-50%);
+            animation: timelineGrow 3s ease-out;
+        }
+
+        @keyframes timelineGrow {
+            from { height: 0; }
+            to { height: 100%; }
+        }
+
+        .timeline-item {
+            position: relative;
+            margin: 2rem 0;
+            opacity: 0;
+            animation: fadeInTimeline 0.8s ease-out forwards;
+        }
+
+        .timeline-item:nth-child(1) { animation-delay: 0.2s; }
+        .timeline-item:nth-child(2) { animation-delay: 0.4s; }
+        .timeline-item:nth-child(3) { animation-delay: 0.6s; }
+        .timeline-item:nth-child(4) { animation-delay: 0.8s; }
+
+        @keyframes fadeInTimeline {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .timeline-content {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px var(--card-shadow);
+            border: 1px solid var(--card-border);
+            width: 45%;
+            position: relative;
+        }
+
+        [data-theme="dark"] .timeline-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .timeline-item:nth-child(odd) .timeline-content {
+            margin-left: auto;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            background: #667eea;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 0 5px var(--bg-primary);
+            animation: dotPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes dotPulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
+        }
+
+        .timeline-content h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .timeline-content p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Future Enhancements */
+        .future-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-top: 4rem;
+        }
+
+        .future-card {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px var(--card-shadow);
+            border: 1px solid var(--card-border);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        [data-theme="dark"] .future-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .future-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(52, 152, 219, 0.1), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.8s ease;
+        }
+
+        .future-card:hover::before {
+            transform: translateX(100%);
+        }
+
+        .future-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(52, 152, 219, 0.2);
+        }
+
+        [data-theme="dark"] .future-card:hover {
+            box-shadow: 0 20px 40px rgba(52, 152, 219, 0.4);
+        }
+
+        .future-icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: white;
+            margin-bottom: 1.5rem;
+            animation: futureRotate 4s linear infinite;
+        }
+
+        @keyframes futureRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .future-card h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .future-card p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Modern Dark Mode Toggle Button */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 25px;
+            width: 50px;
+            height: 28px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 4px 15px var(--card-shadow);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            padding: 2px;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+
+        .theme-toggle-slider {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: white;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transform: translateX(0);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        [data-theme="dark"] .theme-toggle {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .theme-toggle-slider {
+            transform: translateX(22px);
+            background: linear-gradient(135deg, #ffd700 0%, #ff6b35 100%);
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+        }
+
+        /* Animations */
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Section Transitions */
+        .section-transition {
+            opacity: 0;
+            transform: translateY(60px);
+            transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .section-transition.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .hero-container {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 2rem;
+            }
+
+            .tech-visual {
+                width: 350px;
+                height: 350px;
+            }
+
+            .flow-nodes {
+                flex-wrap: wrap;
+                gap: 2rem;
+            }
+
+            .flow-line {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-content h1 {
+                font-size: 2.5rem;
+            }
+
+            .nav-container {
+                padding: 0 1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .container {
+                padding: 0 1rem;
+            }
+
+            .section {
+                padding: 4rem 0;
+            }
+
+            .timeline::before {
+                left: 20px;
+            }
+
+            .timeline-content {
+                width: calc(100% - 60px);
+                margin-left: 60px !important;
+            }
+
+            .timeline-dot {
+                left: 20px;
+            }
+        }
+
+        /* Footer */
+        .footer {
+            background: #2c3e50;
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+        }
+
+        .footer p {
+            margin-bottom: 1rem;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <div class="logo">TenderChain</div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="#architecture">Architecture</a></li>
+                <li><a href="#algorithms">Algorithms</a></li>
+                <li><a href="#security">Security</a></li>
+                <li><a href="#implementation">Implementation</a></li>
+            </ul>
+            <div>
+                <a href="app.html" class="btn btn-primary">🚀 Launch App</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-container">
+            <div class="hero-content">
+                <h1>Technical Documentation</h1>
+                <p>Comprehensive guide to TenderChain's blockchain-based architecture, smart contracts, algorithms, and implementation details. Explore the technical foundations of our revolutionary tender management system.</p>
+            </div>
+            <div class="hero-visual">
+                <div class="tech-visual">
+                    <div class="blockchain-layer"></div>
+                    <div class="blockchain-layer"></div>
+                    <div class="blockchain-layer"></div>
+                    <div class="tech-node">🏛️</div>
+                    <div class="tech-node">📄</div>
+                    <div class="tech-node">🔐</div>
+                    <div class="tech-node">⛓️</div>
+                    <div class="tech-node">💰</div>
+                    <div class="tech-node">✅</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- System Architecture -->
+    <section class="section" id="architecture">
+        <div class="container">
+            <div class="section-title">
+                <h2>System Architecture</h2>
+                <p>Detailed breakdown of TenderChain's decentralized architecture and core components</p>
+            </div>
+            <div class="architecture-flow">
+                <div class="flow-step">
+                    <div class="step-number">1</div>
+                    <h3>Tender Creation</h3>
+                    <p>Government/Organization creates tender with specifications, evaluation criteria, and budget. All data is encrypted and stored immutably on blockchain.</p>
+                </div>
+                <div class="flow-step">
+                    <div class="step-number">2</div>
+                    <h3>Public Announcement</h3>
+                    <p>Tender details are automatically published on the platform with equal access for all bidders. Smart notifications alert relevant contractors.</p>
+                </div>
+                <div class="flow-step">
+                    <div class="step-number">3</div>
+                    <h3>Bid Submission</h3>
+                    <p>Contractors submit sealed bids using symmetric key encryption. Bids remain private until deadline, ensuring fairness and preventing manipulation.</p>
+                </div>
+                <div class="flow-step">
+                    <div class="step-number">4</div>
+                    <h3>Automated Evaluation</h3>
+                    <p>Smart contracts automatically evaluate bids against predefined criteria. Scoring is transparent, consistent, and free from human bias.</p>
+                </div>
+                <div class="flow-step">
+                    <div class="step-number">5</div>
+                    <h3>Milestone Creation</h3>
+                    <p>Selected contract is divided into milestones. Each milestone has specific deliverables, verification requirements, and payment schedules.</p>
+                </div>
+                <div class="flow-step">
+                    <div class="step-number">6</div>
+                    <h3>Verification & Payment</h3>
+                    <p>Two-step verification by domain experts and officials. Automatic payment release upon successful milestone completion.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- System Actors -->
+    <section class="section">
+        <div class="container">
+            <div class="section-title">
+                <h2>System Actors</h2>
+                <p>Key participants in the TenderChain ecosystem and their roles</p>
+            </div>
+            <div class="actors-grid">
+                <div class="actor-card">
+                    <div class="actor-icon">🏛️</div>
+                    <div class="actor-card-content">
+                        <h3>Government/Organization</h3>
+                        <p>Creates and publishes tender specifications, sets evaluation criteria, and manages the overall procurement process.</p>
+                    </div>
+                </div>
+                <div class="actor-card">
+                    <div class="actor-icon">🏢</div>
+                    <div class="actor-card-content">
+                        <h3>Bidder</h3>
+                        <p>Interested organizations who review requirements, prepare proposals, and submit encrypted bids within the deadline.</p>
+                    </div>
+                </div>
+                <div class="actor-card">
+                    <div class="actor-icon">👷</div>
+                    <div class="actor-card-content">
+                        <h3>Contractor</h3>
+                        <p>The selected bidder who executes the contract, completes milestones, and receives payments through smart contracts.</p>
+                    </div>
+                </div>
+                <div class="actor-card">
+                    <div class="actor-icon">🔍</div>
+                    <div class="actor-card-content">
+                        <h3>Verifier</h3>
+                        <p>Domain experts who stake tokens to verify milestone completion, ensuring quality and compliance standards.</p>
+                    </div>
+                </div>
+                <div class="actor-card">
+                    <div class="actor-icon">👥</div>
+                    <div class="actor-card-content">
+                        <h3>Participants</h3>
+                        <p>Citizens and network participants who monitor processes, raise claims, and help maintain system integrity.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Smart Contract Code -->
+    <section class="code-section">
+        <div class="container">
+            <div class="section-title">
+                <h2>Smart Contract Implementation</h2>
+                <p>Core smart contract functions powering the TenderChain platform</p>
+            </div>
+            <div class="code-grid">
+                <div class="code-block">
+                    <div class="code-header">Tender Creation Contract</div>
+                    <div class="code-content">
+1. DEFINE TenderStructure {
+     tenderData: string
+     govtPublicKey: address
+     bidOpenDate: timestamp
+     bidCloseDate: timestamp
+     budget: uint256
+     evaluationCriteria: string
+     isActive: boolean
+   }
+
+2. INITIALIZE:
+     tenderMapping: uint256 → TenderStructure
+     tenderCounter: uint256 = 0
+
+3. FUNCTION CreateTender(
+     data: string,
+     govtKey: address,
+     openDate: timestamp,
+     closeDate: timestamp
+   ):
+     BEGIN
+       newTender ← TenderStructure(
+         tenderData: data,
+         govtPublicKey: govtKey,
+         bidOpenDate: openDate,
+         bidCloseDate: closeDate,
+         budget: transaction.value,
+         evaluationCriteria: "",
+         isActive: true
+       )
+       tenderMapping[tenderCounter] ← newTender
+       tenderCounter ← tenderCounter + 1
+       EMIT TenderCreated(tenderCounter - 1)
+     END
+                    </div>
+                </div>
+                <div class="code-block">
+                    <div class="code-header">Bid Management Contract</div>
+                    <div class="code-content">
+1. DEFINE BidStructure {
+     contractor: address
+     encryptedData: string
+     milestoneAmounts: array[uint256]
+     emdAmount: uint256
+     timestamp: timestamp
+     isSubmitted: boolean
+   }
+
+2. INITIALIZE:
+     tenderBids: uint256 → array[BidStructure]
+     bidCounter: uint256 = 0
+
+3. FUNCTION PlaceBid(
+     tenderId: uint256,
+     encryptedData: string,
+     milestones: array[uint256]
+   ) PAYABLE:
+     BEGIN
+       REQUIRE current_time ≤ tender[tenderId].bidCloseDate
+       
+       newBid ← BidStructure(
+         contractor: msg.sender,
+         encryptedData: encrypt(encryptedData),
+         milestoneAmounts: milestones,
+         emdAmount: msg.value,
+         timestamp: current_time,
+         isSubmitted: true
+       )
+       
+       tenderBids[tenderId].append(newBid)
+       EMIT BidSubmitted(tenderId, msg.sender)
+     END
+                    </div>
+                </div>
+                <div class="code-block">
+                    <div class="code-header">Milestone Verification Contract</div>
+                    <div class="code-content">
+1. DEFINE MilestoneStatus ENUM {
+     PENDING,
+     REPORTED_COMPLETE,
+     PARTIALLY_VERIFIED,
+     COMPLETE,
+     CONTRACTOR_PAID
+   }
+
+2. DEFINE MilestoneStructure {
+     amount: uint256
+     description: string
+     proof: string
+     verifiedBy: address
+     govtVerifiedBy: address
+     verifierStake: uint256
+     status: MilestoneStatus
+   }
+
+3. INITIALIZE:
+     milestones: mapping[uint256 → MilestoneStructure]
+
+4. FUNCTION VerifyMilestone(
+     contractAddress: address,
+     milestoneId: uint256,
+     stake: uint256
+   ) PAYABLE:
+     BEGIN
+       REQUIRE msg.value ≥ stake
+       REQUIRE milestone[milestoneId].status = REPORTED_COMPLETE
+       
+       milestone[milestoneId].verifiedBy ← msg.sender
+       milestone[milestoneId].verifierStake ← stake
+       milestone[milestoneId].status ← PARTIALLY_VERIFIED
+       
+       ESCROW stake AMOUNT
+       EMIT MilestoneVerified(milestoneId, msg.sender)
+     END
+                    </div>
+                </div>
+                <div class="code-block">
+                    <div class="code-header">Fraud Detection Contract</div>
+                    <div class="code-content">
+1. DEFINE ClaimStructure {
+     claimant: address
+     proofHash: string
+     stake: uint256
+     supportVotes: uint256
+     totalStakeSupport: uint256
+     pilFiled: boolean
+     investigated: boolean
+     claimValid: boolean
+   }
+
+2. INITIALIZE:
+     milestoneClaims: uint256 → array[ClaimStructure]
+     minimumStake: uint256 = 100 tokens
+     pilThreshold: uint256 = 1000 tokens
+
+3. FUNCTION RaiseClaim(
+     milestoneId: uint256,
+     proofHash: string
+   ) PAYABLE:
+     BEGIN
+       REQUIRE msg.value ≥ minimumStake
+       
+       newClaim ← ClaimStructure(
+         claimant: msg.sender,
+         proofHash: proofHash,
+         stake: msg.value,
+         supportVotes: 1,
+         totalStakeSupport: msg.value,
+         pilFiled: false,
+         investigated: false,
+         claimValid: false
+       )
+       
+       milestoneClaims[milestoneId].append(newClaim)
+       EMIT ClaimRaised(milestoneId, msg.sender)
+     END
+
+4. FUNCTION SupportClaim(
+     milestoneId: uint256,
+     claimIndex: uint256
+   ) PAYABLE:
+     BEGIN
+       claim ← milestoneClaims[milestoneId][claimIndex]
+       claim.supportVotes ← claim.supportVotes + 1
+       claim.totalStakeSupport ← claim.totalStakeSupport + msg.value
+       
+       IF claim.totalStakeSupport ≥ pilThreshold THEN
+         claim.pilFiled ← true
+         TRIGGER PIL_FILING_PROCESS(milestoneId, claimIndex)
+       END IF
+       
+       EMIT ClaimSupported(milestoneId, claimIndex, msg.sender)
+     END
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Algorithm Section -->
+    <section class="algorithm-section section" id="algorithms">
+        <div class="container">
+            <div class="section-title">
+                <h2>Core Algorithms</h2>
+                <p>Detailed algorithms powering TenderChain's automated processes</p>
+            </div>
+            <div class="algorithm-grid">
+                <div class="algorithm-card">
+                    <div class="algorithm-header">Algorithm 1: Creating A Tender</div>
+                    <div class="algorithm-content">
+1. procedure CREATE_TENDER
+   (_data, _gvt_pbk, _bidOpenDate, _bidCloseDate)
+2.   data ← _data
+3.   govtPublicKey ← _gvt_pbk  
+4.   bidOpeningDate ← _bidOpenDate
+5.   bidClosingDate ← _bidCloseDate
+6.   budget ← msg.value
+7.   evaluationCriteria ← predefined_criteria
+8.   tenderStatus ← ACTIVE
+9.   emit TenderCreated(tenderId, data)
+10.  return tenderId
+                    </div>
+                </div>
+                <div class="algorithm-card">
+                    <div class="algorithm-header">Algorithm 2: Placing A Bid</div>
+                    <div class="algorithm-content">
+1. procedure PLACE_BID
+   (_contractor, _data, _milestone[], _EMD)
+2.   contractorAdd ← _contractor
+3.   data ← encrypt(_data)
+4.   milestones ← _milestone
+5.   contractorAdd.transfer(_EMD)
+6.   require(block.timestamp <= bidClosingDate)
+7.   bidHash ← keccak256(data, contractorAdd)
+8.   store bid in blockchain
+9.   emit BidPlaced(tenderId, contractorAdd)
+10.  return bidId
+                    </div>
+                </div>
+                <div class="algorithm-card">
+                    <div class="algorithm-header">Algorithm 3: Creating A Contract</div>
+                    <div class="algorithm-content">
+1. procedure CREATE_CONTRACT
+   (_contractor, _tenderData, _start, _end)
+2.   contractorAddress ← _contractor
+3.   tenderData ← _tenderData
+4.   contractStartingDate ← _start
+5.   contractEndingDate ← _end
+6.   contract.status ← IN_PROCESS
+7.   initialize milestones with PENDING status
+8.   set performance security
+9.   emit ContractCreated(contractId)
+10.  return contractId
+                    </div>
+                </div>
+                <div class="algorithm-card">
+                    <div class="algorithm-header">Algorithm 4: Milestone Completion</div>
+                    <div class="algorithm-content">
+1. procedure MARK_COMPLETE
+   (_contractAddress, _proof, _milestoneID)
+2.   milestone ← getMilestone(_contractAddress, _milestoneID)
+3.   milestone.proof ← _proof
+4.   milestone.status ← REPORTED_COMPLETE
+5.   milestone.completionTime ← block.timestamp
+6.   store proof on IPFS
+7.   milestone.proofHash ← ipfsHash
+8.   emit MilestoneCompleted(contractId, milestoneId)
+9.   return success
+                    </div>
+                </div>
+                <div class="algorithm-card">
+                    <div class="algorithm-header">Algorithm 5: Verification Process</div>
+                    <div class="algorithm-content">
+1. procedure VERIFY_MILESTONE
+   (_contractAddress, _milestoneID, _stake, _verifierAddress)
+2.   milestone ← getMilestone(_contractAddress, _milestoneID)
+3.   require(milestone.status == REPORTED_COMPLETE)
+4.   milestone.verifiedBy ← _verifierAddress
+5.   milestone.verifiedBy.stake ← _stake
+6.   milestone.status ← PARTIALLY_VERIFIED
+7.   escrow verifier stake
+8.   emit MilestoneVerified(milestoneId, verifier)
+9.   return verification_id
+                    </div>
+                </div>
+                <div class="algorithm-card">
+                    <div class="algorithm-header">Algorithm 6: Fraud Detection</div>
+                    <div class="algorithm-content">
+1. procedure RAISE_NEW_CLAIM
+   (_contractAddress, _milestoneID, _citizenAddress, _proof, _stake)
+2.   milestone ← getMilestone(_contractAddress, _milestoneID)
+3.   supporter ← newSupporter(_citizenAddress, _proof, _stake)
+4.   claim ← newClaim()
+5.   claim.status ← RAISED
+6.   claim.totalStake ← _stake
+7.   claim.supporterCount ← 1
+8.   store claim on blockchain
+9.   emit ClaimRaised(milestoneId, claimId)
+10.  return claimId
+                    </div>
+                </div>
+                <div class="algorithm-card">
+                    <div class="algorithm-header">Algorithm 7: Payment Processing</div>
+                    <div class="algorithm-content">
+1. procedure VERIFY_TRANSFER
+   (_contractAddress, _milestoneID, _govtAddress)
+2.   milestone ← getMilestone(_contractAddress, _milestoneID)
+3.   require(milestone.status == PARTIALLY_VERIFIED)
+4.   milestone.govtVerifiedBy ← _govtAddress
+5.   milestone.status ← COMPLETE
+6.   release milestone payment
+7.   gvt_pbk.transfer(_contractAddress, milestone.amount)
+8.   emit PaymentReleased(milestoneId, amount)
+9.   return transaction_hash
+                    </div>
+                </div>
+                <div class="algorithm-card">
+                    <div class="algorithm-header">Algorithm 8: Stake Slashing</div>
+                    <div class="algorithm-content">
+1. procedure SLASH_STAKES
+   (_contractAddress, _milestoneID, _claimID)
+2.   milestone ← getMilestone(_contractAddress, _milestoneID)
+3.   claim ← getClaim(milestone, _claimID)
+4.   if claim.isValid then
+5.     slash verifier and govt stakes
+6.     reward claim supporters proportionally
+7.   else
+8.     slash supporter stakes
+9.     reward verifiers and govt
+10.   claim.status ← RESOLVED
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Technology Stack -->
+    <section class="tech-stack section">
+        <div class="container">
+            <div class="section-title">
+                <h2>Technology Stack</h2>
+                <p>Cutting-edge technologies powering TenderChain platform</p>
+            </div>
+            <div class="tech-grid">
+                <div class="tech-item">
+                    <span class="tech-icon">⟠</span>
+                    <h3>Ethereum</h3>
+                    <p>Primary blockchain platform for smart contract deployment and execution</p>
+                </div>
+                <div class="tech-item">
+                    <span class="tech-icon">📝</span>
+                    <h3>Solidity</h3>
+                    <p>Smart contract programming language for implementing business logic</p>
+                </div>
+                <div class="tech-item">
+                    <span class="tech-icon">🛠️</span>
+                    <h3>Truffle</h3>
+                    <p>Development framework for Ethereum blockchain applications</p>
+                </div>
+                <div class="tech-item">
+                    <span class="tech-icon">🌐</span>
+                    <h3>Web3.js</h3>
+                    <p>JavaScript library for interacting with Ethereum blockchain</p>
+                </div>
+                <div class="tech-item">
+                    <span class="tech-icon">🦊</span>
+                    <h3>MetaMask</h3>
+                    <p>Ethereum wallet for secure transaction signing and management</p>
+                </div>
+                <div class="tech-item">
+                    <span class="tech-icon">📊</span>
+                    <h3>Ganache</h3>
+                    <p>Personal blockchain for local development and testing</p>
+                </div>
+                <div class="tech-item">
+                    <span class="tech-icon">🗃️</span>
+                    <h3>IPFS</h3>
+                    <p>Distributed file system for storing large documents and proofs</p>
+                </div>
+                <div class="tech-item">
+                    <span class="tech-icon">🔐</span>
+                    <h3>Cryptography</h3>
+                    <p>Advanced encryption for bid privacy and data integrity</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Process Flow Diagram -->
+    <section class="process-flow section">
+        <div class="container">
+            <div class="section-title">
+                <h2>Process Flow</h2>
+                <p>Visual representation of the complete tender lifecycle</p>
+            </div>
+            <div class="flow-diagram">
+                <div class="flow-line"></div>
+                <div class="flow-nodes">
+                    <div class="flow-node">
+                        📝
+                        <span>Create</span>
+                    </div>
+                    <div class="flow-node">
+                        📢
+                        <span>Publish</span>
+                    </div>
+                    <div class="flow-node">
+                        💼
+                        <span>Bid</span>
+                    </div>
+                    <div class="flow-node">
+                        🔍
+                        <span>Evaluate</span>
+                    </div>
+                    <div class="flow-node">
+                        ✅
+                        <span>Execute</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Security Features -->
+    <section class="section" id="security">
+        <div class="container">
+            <div class="section-title">
+                <h2>Security Features</h2>
+                <p>Multi-layered security ensuring integrity and transparency</p>
+            </div>
+            <div class="security-grid">
+                <div class="security-card">
+                    <div class="security-icon">🔒</div>
+                    <h3>Immutable Records</h3>
+                    <p>All tender data, bids, and transactions are permanently recorded on blockchain, preventing any unauthorized modifications or deletions.</p>
+                </div>
+                <div class="security-card">
+                    <div class="security-icon">🛡️</div>
+                    <h3>Cryptographic Security</h3>
+                    <p>Advanced encryption algorithms protect bid privacy until evaluation phase, ensuring fair competition among participants.</p>
+                </div>
+                <div class="security-card">
+                    <div class="security-icon">⚖️</div>
+                    <h3>Consensus Mechanisms</h3>
+                    <p>Multiple validation nodes verify each transaction, preventing single points of failure and ensuring network integrity.</p>
+                </div>
+                <div class="security-card">
+                    <div class="security-icon">🔍</div>
+                    <h3>Audit Trail</h3>
+                    <p>Complete history of all actions and decisions, providing full transparency and accountability for regulatory compliance.</p>
+                </div>
+                <div class="security-card">
+                    <div class="security-icon">💰</div>
+                    <h3>Stake-Based Validation</h3>
+                    <p>Economic incentives through staking mechanisms ensure honest behavior and penalize malicious actors in the network.</p>
+                </div>
+                <div class="security-card">
+                    <div class="security-icon">🔐</div>
+                    <h3>Multi-Signature Security</h3>
+                    <p>Critical operations require multiple authorized signatures, preventing unauthorized access and enhancing security.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Performance Statistics -->
+    <section class="stats-section section">
+        <div class="container">
+            <div class="section-title">
+                <h2>Performance Metrics</h2>
+                <p>Real-world impact and efficiency improvements</p>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">₹14L Cr</div>
+                    <div class="stat-label">Annual Tender Value in India</div>
+                    <div class="stat-description">Total government procurement spending over last 5 years, representing 30% of GDP</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">85%</div>
+                    <div class="stat-label">Processing Time Reduction</div>
+                    <div class="stat-description">Reduction in tender processing time through smart contract automation</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">31%</div>
+                    <div class="stat-label">Cost Savings</div>
+                    <div class="stat-description">Average reduction in procurement costs through elimination of intermediaries</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">99.9%</div>
+                    <div class="stat-label">Data Integrity</div>
+                    <div class="stat-description">Guaranteed accuracy and tamper-proof records through blockchain technology</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">94%</div>
+                    <div class="stat-label">Fraud Reduction</div>
+                    <div class="stat-description">Decrease in reported irregularities in blockchain-enabled procurement systems</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">7-14</div>
+                    <div class="stat-label">Days to Award</div>
+                    <div class="stat-description">Time from tender publication to contract award, compared to 90-180 days traditionally</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Implementation Timeline -->
+    <section class="section" id="implementation">
+        <div class="container">
+            <div class="section-title">
+                <h2>Implementation Roadmap</h2>
+                <p>Phased approach to deploying TenderChain across government organizations</p>
+            </div>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <h3>Phase 1: Proof of Concept</h3>
+                        <p>Development of core smart contracts, basic UI/UX design, and testing on private blockchain networks. Integration with IPFS for document storage and initial security audits.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <h3>Phase 2: Pilot Program</h3>
+                        <p>Deploy system in select government departments for small-scale tenders. Gather user feedback, optimize performance, and establish integration protocols with existing systems.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <h3>Phase 3: Scaling & Integration</h3>
+                        <p>Expand to state-level procurement, implement advanced features like AI-powered evaluation, and establish inter-departmental data sharing protocols.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <h3>Phase 4: National Deployment</h3>
+                        <p>Full-scale implementation across all government levels, international tender support, and integration with global procurement standards and compliance frameworks.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Future Enhancements -->
+    <section class="section">
+        <div class="container">
+            <div class="section-title">
+                <h2>Future Enhancements</h2>
+                <p>Planned improvements and advanced features for next-generation procurement</p>
+            </div>
+            <div class="future-grid">
+                <div class="future-card">
+                    <div class="future-icon">🤖</div>
+                    <h3>AI-Powered Evaluation</h3>
+                    <p>Machine learning algorithms for intelligent bid scoring, risk assessment, and predictive analytics to improve decision-making accuracy.</p>
+                </div>
+                <div class="future-card">
+                    <div class="future-icon">🛡️</div>
+                    <h3>Insurance Integration</h3>
+                    <p>Automated insurance protocols for contract performance, milestone completion guarantees, and risk mitigation strategies.</p>
+                </div>
+                <div class="future-card">
+                    <div class="future-icon">📊</div>
+                    <h3>Advanced Analytics</h3>
+                    <p>Real-time dashboard with predictive insights, performance metrics, and comprehensive reporting for stakeholders.</p>
+                </div>
+                <div class="future-card">
+                    <div class="future-icon">🌐</div>
+                    <h3>Cross-Border Integration</h3>
+                    <p>International tender support with multi-currency transactions, compliance with global standards, and cross-jurisdictional verification.</p>
+                </div>
+                <div class="future-card">
+                    <div class="future-icon">📱</div>
+                    <h3>Mobile Application</h3>
+                    <p>Dedicated mobile app for contractors, officials, and citizens with push notifications, document scanning, and offline capabilities.</p>
+                </div>
+                <div class="future-card">
+                    <div class="future-icon">🔗</div>
+                    <h3>IoT Integration</h3>
+                    <p>Internet of Things devices for real-time project monitoring, automated progress tracking, and milestone verification.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 TenderChain. All rights reserved.</p>
+            <p>Technical Documentation - Blockchain-powered procurement for the digital age.</p>
+            <div class="footer-links">
+                <a href="#privacy">Privacy Policy</a>
+                <a href="#terms">Terms of Service</a>
+                <a href="#support">Technical Support</a>
+                <a href="#docs">API Documentation</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modern Dark Mode Toggle Button -->
+    <button class="theme-toggle" id="themeToggle" title="Toggle Dark/Light Mode">
+        <div class="theme-toggle-slider" id="themeIcon">🌙</div>
+    </button>
+
+    <script>
+        // Enhanced dark mode toggle functionality
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const html = document.documentElement;
+        
+        // Check for saved theme preference or default to 'light'
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        html.setAttribute('data-theme', currentTheme);
+        themeIcon.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+        
+        themeToggle.addEventListener('click', function() {
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            themeIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+            
+            // Add a smooth transition effect
+            themeToggle.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                themeToggle.style.transform = 'scale(1)';
+            }, 150);
+        });
+
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Section reveal animation
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        // Observe all sections
+        document.querySelectorAll('.section').forEach(section => {
+            section.classList.add('section-transition');
+            observer.observe(section);
+        });
+
+        // Animated counters for statistics
+        function animateCounter(element, target, duration = 2000) {
+            let start = 0;
+            let startTime = null;
+            
+            function step(currentTime) {
+                if (!startTime) startTime = currentTime;
+                const progress = Math.min((currentTime - startTime) / duration, 1);
+                
+                const current = Math.floor(progress * target);
+                
+                if (target === 99.9) {
+                    element.textContent = (progress * target).toFixed(1);
+                } else if (target >= 1000000) {
+                    element.textContent = `₹${(progress * target / 100000).toFixed(0)}L Cr`;
+                } else {
+                    element.textContent = Math.floor(progress * target);
+                }
+                
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                }
+            }
+            
+            requestAnimationFrame(step);
+        }
+
+        // Stats animation observer
+        const statsObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const number = entry.target.querySelector('.stat-number');
+                    if (number && !number.classList.contains('animated')) {
+                        number.classList.add('animated');
+                        const text = number.textContent;
+                        
+                        if (text.includes('₹14L Cr')) {
+                            animateCounter(number, 1400000);
+                        } else if (text.includes('%')) {
+                            const value = parseFloat(text);
+                            animateCounter(number, value);
+                            setTimeout(() => number.textContent = value + '%', 2000);
+                        } else if (text.includes('7-14')) {
+                            setTimeout(() => number.textContent = '7-14', 2000);
+                        } else {
+                            const value = parseFloat(text);
+                            animateCounter(number, value);
+                        }
+                    }
+                }
+            });
+        }, { threshold: 0.5 });
+
+        document.querySelectorAll('.stat-card').forEach(card => {
+            statsObserver.observe(card);
+        });
+
+        // Code block syntax highlighting animation
+        function highlightCodeBlocks() {
+            document.querySelectorAll('.code-content').forEach(block => {
+                const content = block.innerHTML;
+                // Add typing effect
+                block.style.opacity = '0';
+                setTimeout(() => {
+                    block.style.opacity = '1';
+                    block.style.animation = 'fadeInUp 0.8s ease-out';
+                }, Math.random() * 500);
+            });
+        }
+
+        // Floating animation for tech icons
+        function addFloatingAnimation() {
+            document.querySelectorAll('.tech-icon').forEach((icon, index) => {
+                const delay = index * 0.2;
+                const duration = 3 + Math.random() * 2;
+                
+                icon.style.animation = `techFloat ${duration}s ease-in-out infinite`;
+                icon.style.animationDelay = `${delay}s`;
+            });
+        }
+
+        // Interactive hover effects for cards
+        document.querySelectorAll('.flow-step, .actor-card, .security-card, .future-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-10px) scale(1.02)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+
+        // Algorithm cards hover effect
+        document.querySelectorAll('.algorithm-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                const header = this.querySelector('.algorithm-header');
+                header.style.background = 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                const header = this.querySelector('.algorithm-header');
+                header.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
+            });
+        });
+
+        // Tech visual rotation effect
+        function enhanceTechVisual() {
+            const layers = document.querySelectorAll('.blockchain-layer');
+            layers.forEach((layer, index) => {
+                layer.style.animationDelay = `${index * -7}s`;
+                layer.style.animationDuration = '20s';
+            });
+        }
+
+        // Flow nodes interaction
+        document.querySelectorAll('.flow-node').forEach((node, index) => {
+            node.addEventListener('click', function() {
+                // Add ripple effect
+                this.style.animation = 'none';
+                setTimeout(() => {
+                    this.style.animation = `nodeFloat 4s ease-in-out infinite`;
+                    this.style.animationDelay = `${index * 0.5}s`;
+                }, 10);
+            });
+        });
+
+        // Timeline animation on scroll
+        const timelineObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = 'fadeInTimeline 0.8s ease-out forwards';
+                }
+            });
+        }, { threshold: 0.3 });
+
+        document.querySelectorAll('.timeline-item').forEach((item, index) => {
+            item.style.animationDelay = `${index * 0.2}s`;
+            timelineObserver.observe(item);
+        });
+
+        // Parallax effect for sections
+        window.addEventListener('scroll', function() {
+            const scrolled = window.pageYOffset;
+            const parallax = document.querySelectorAll('.hero');
+            const speed = 0.5;
+
+            parallax.forEach(element => {
+                const yPos = -(scrolled * speed);
+                element.style.transform = `translateY(${yPos}px)`;
+            });
+
+            // Floating elements in hero
+            const techNodes = document.querySelectorAll('.tech-node');
+            techNodes.forEach((node, index) => {
+                const speed = 0.1 + (index * 0.05);
+                const yPos = scrolled * speed;
+                node.style.transform = `translateY(${yPos}px)`;
+            });
+        });
+
+        // Initialize animations when page loads
+        window.addEventListener('load', function() {
+            highlightCodeBlocks();
+            addFloatingAnimation();
+            enhanceTechVisual();
+            
+            // Add loading animation to theme toggle
+            themeToggle.style.animation = 'fadeInUp 0.6s ease-out 0.5s both';
+        });
+
+        // Performance optimization - lazy load animations
+        const lazyAnimations = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const element = entry.target;
+                    element.style.animation = element.dataset.animation || 'fadeInUp 0.8s ease-out';
+                    lazyAnimations.unobserve(element);
+                }
+            });
+        }, { threshold: 0.1 });
+
+        // Apply lazy animations to various elements
+        document.querySelectorAll('.code-block, .tech-item, .algorithm-card').forEach(element => {
+            element.dataset.animation = 'fadeInUp 0.8s ease-out';
+            lazyAnimations.observe(element);
+        });
+
+        // Add interactive cursor effects
+        document.addEventListener('mousemove', function(e) {
+            const cursor = document.querySelector('.cursor');
+            if (!cursor) {
+                const newCursor = document.createElement('div');
+                newCursor.className = 'cursor';
+                newCursor.style.cssText = `
+                    position: fixed;
+                    width: 20px;
+                    height: 20px;
+                    background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+                    border-radius: 50%;
+                    pointer-events: none;
+                    z-index: 9999;
+                    transition: transform 0.1s ease;
+                `;
+                document.body.appendChild(newCursor);
+            }
+            
+            const currentCursor = document.querySelector('.cursor');
+            currentCursor.style.left = e.clientX - 10 + 'px';
+            currentCursor.style.top = e.clientY - 10 + 'px';
+        });
+
+        // Enhanced scroll-triggered animations
+        const scrollTrigger = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const element = entry.target;
+                    const animationType = element.dataset.scroll || 'fadeInUp';
+                    element.style.animation = `${animationType} 0.8s ease-out forwards`;
+                    element.style.opacity = '1';
+                }
+            });
+        }, {
+            threshold: 0.1,
+            rootMargin: '0px 0px -100px 0px'
+        });
+
+        // Apply scroll animations
+        document.querySelectorAll('.section-title, .flow-step, .actor-card').forEach((element, index) => {
+            element.style.opacity = '0';
+            element.dataset.scroll = index % 2 === 0 ? 'slideInLeft' : 'slideInRight';
+            scrollTrigger.observe(element);
+        });
+
+        // Add morphing background animations
+        function createMorphingBackground() {
+            const sections = document.querySelectorAll('.section:nth-child(even)');
+            
+            sections.forEach(section => {
+                const morphShape = document.createElement('div');
+                morphShape.style.cssText = `
+                    position: absolute;
+                    top: 10%;
+                    right: 5%;
+                    width: 300px;
+                    height: 300px;
+                    background: linear-gradient(45deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+                    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+                    animation: morphBackground 15s ease-in-out infinite;
+                    z-index: 0;
+                `;
+                section.style.position = 'relative';
+                section.appendChild(morphShape);
+            });
+        }
+
+        // Initialize morphing backgrounds
+        createMorphingBackground();
+
+        // Add glitch effect to tech icons
+        document.querySelectorAll('.tech-icon').forEach(icon => {
+            icon.addEventListener('mouseenter', function() {
+                this.style.animation = 'none';
+                this.style.transform = 'scale(1.2) rotate(5deg)';
+                this.style.filter = 'hue-rotate(90deg)';
+                
+                setTimeout(() => {
+                    this.style.transform = 'scale(1) rotate(0deg)';
+                    this.style.filter = 'none';
+                    this.style.animation = 'techFloat 3s ease-in-out infinite';
+                }, 300);
+            });
+        });
+
+        // Add progressive text reveal
+        function revealText(element) {
+            const text = element.textContent;
+            element.innerHTML = '';
+            
+            text.split('').forEach((char, index) => {
+                const span = document.createElement('span');
+                span.textContent = char === ' ' ? '\u00A0' : char;
+                span.style.opacity = '0';
+                span.style.transform = 'translateY(20px)';
+                span.style.transition = `all 0.3s ease ${index * 0.03}s`;
+                element.appendChild(span);
+                
+                setTimeout(() => {
+                    span.style.opacity = '1';
+                    span.style.transform = 'translateY(0)';
+                }, 100);
+            });
+        }
+
+        // Apply text reveal to specific elements
+        const textRevealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    revealText(entry.target);
+                    textRevealObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.8 });
+
+        document.querySelectorAll('.section-title h2').forEach(title => {
+            textRevealObserver.observe(title);
+        });
+    </script>
+</body>
+</html>

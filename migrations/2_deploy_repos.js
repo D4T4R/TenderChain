@@ -6,7 +6,7 @@ var Contract = artifacts.require("./Contract.sol");
 var Contractor = artifacts.require("./Contractor.sol");
 var GovernmentOfficer = artifacts.require("./GovernmentOfficer.sol");
 var Tender = artifacts.require("./Tender.sol");
-var Verifier = artifacts.require("./Tender.sol");
+var Verifier = artifacts.require("./Verifier.sol");
 
 module.exports = function(deployer) {
   deployer.deploy(GovernmentOfficerRepo);

@@ -2,9 +2,15 @@
   "dependencies": {
     "big-number": "^2.0.0",
     "solc": "^0.8.16",
-    "truffle": "^5.5.28"
+    "truffle": "^5.5.28",
+    "serve": "^14.2.0",
+    "ganache": "^7.9.2"
   },
   "scripts": {
-    "start": "login.js"
+    "compile": "truffle compile",
+    "migrate": "truffle migrate --reset",
+    "dev": "truffle develop",
+    "ganache": "ganache -p 8545",
+    "start": "serve . -l 3000"
   }
 }

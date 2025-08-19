@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TenderChain - App Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Enhanced Dark Mode Variables */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --card-bg: #ffffff;
+            --card-shadow: rgba(0, 0, 0, 0.1);
+            --border-color: rgba(255, 255, 255, 0.2);
+            --accent-gradient: linear-gradient(135deg, #0f3460 0%, #1e3c72 100%);
+            --hero-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --text-primary: #ffffff;
+            --text-secondary: #e0e0e0;
+            --card-bg: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%);
+            --card-shadow: rgba(0, 0, 0, 0.8);
+            --border-color: rgba(255, 255, 255, 0.15);
+            --accent-gradient: linear-gradient(135deg, #4a90e2 0%, #7b68ee 100%);
+            --hero-gradient: linear-gradient(135deg, #000000 0%, #1a1a1a 25%, #2d2d2d 50%, #1a1a1a 75%, #000000 100%);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: var(--hero-gradient);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .app-container {
+            max-width: 1200px;
+            width: 100%;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px var(--card-shadow);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            backdrop-filter: blur(20px);
+        }
+
+        [data-theme="dark"] .app-container {
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .app-visual {
+            background: var(--accent-gradient);
+            padding: 4rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .app-visual::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="none"><circle cx="100" cy="100" r="3" fill="rgba(255,255,255,0.1)"/><circle cx="300" cy="200" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="500" cy="150" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="700" cy="300" r="3" fill="rgba(255,255,255,0.1)"/><circle cx="200" cy="400" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="600" cy="450" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="800" cy="200" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="150" cy="600" r="3" fill="rgba(255,255,255,0.1)"/><circle cx="450" cy="650" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="750" cy="700" r="2" fill="rgba(255,255,255,0.1)"/></svg>');
+            opacity: 0.3;
+            z-index: 0;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .app-visual h2 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .app-visual p {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .app-features {
+            margin-top: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .feature-icon {
+            margin-right: 0.8rem;
+            font-size: 1.4rem;
+        }
+
+        .blockchain-visual {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            width: 150px;
+            height: 150px;
+            z-index: 1;
+        }
+
+        .block {
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .block:nth-child(1) { top: 0; left: 0; animation-delay: 0s; }
+        .block:nth-child(2) { top: 0; left: 40px; animation-delay: 0.3s; }
+        .block:nth-child(3) { top: 0; left: 80px; animation-delay: 0.6s; }
+        .block:nth-child(4) { top: 40px; left: 0; animation-delay: 0.9s; }
+        .block:nth-child(5) { top: 40px; left: 40px; animation-delay: 1.2s; }
+        .block:nth-child(6) { top: 40px; left: 80px; animation-delay: 1.5s; }
+        .block:nth-child(7) { top: 80px; left: 0; animation-delay: 1.8s; }
+        .block:nth-child(8) { top: 80px; left: 40px; animation-delay: 2.1s; }
+        .block:nth-child(9) { top: 80px; left: 80px; animation-delay: 2.4s; }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.7; }
+            50% { transform: scale(1.1); opacity: 1; }
+        }
+
+        .login-container {
+            padding: 4rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: var(--bg-primary);
+        }
+
+        .login-container h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .login-options {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            padding: 1rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: var(--accent-gradient);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-primary);
+            border: 2px solid;
+            border-image: var(--accent-gradient) 1;
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .btn-secondary {
+            background: var(--glass-bg);
+            border: 2px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--glass-bg);
+            transform: translateY(-2px);
+        }
+
+        .btn-wallet {
+            background: #f6851b;
+            color: white;
+        }
+
+        .btn-wallet:hover {
+            background: #e2761b;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(246, 133, 27, 0.3);
+        }
+
+        .separator {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 1.5rem 0;
+            color: #666;
+        }
+
+        .separator {
+            color: var(--text-secondary);
+        }
+
+        .separator::before,
+        .separator::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .separator::before {
+            margin-right: 1rem;
+        }
+
+        .separator::after {
+            margin-left: 1rem;
+        }
+
+        .user-type {
+            margin-bottom: 1.5rem;
+        }
+
+        .user-type h3 {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .role-selector {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .role-option {
+            flex: 1;
+            min-width: 120px;
+            padding: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--glass-bg);
+            color: var(--text-primary);
+            backdrop-filter: blur(10px);
+        }
+
+        .role-option:hover {
+            border: 2px solid;
+            border-image: var(--accent-gradient) 1;
+            background: var(--glass-bg);
+            transform: translateY(-2px);
+        }
+
+        .role-option.selected {
+            border: 2px solid;
+            border-image: var(--accent-gradient) 1;
+            background: var(--glass-bg);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        [data-theme="dark"] .role-option.selected {
+            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.4);
+        }
+
+        .role-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .back-to-site {
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .back-to-site a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .back-to-site a:hover {
+            color: var(--text-primary);
+            transform: translateX(-3px);
+        }
+
+        @media (max-width: 992px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+
+            .app-visual {
+                padding: 3rem;
+            }
+
+            .login-container {
+                padding: 3rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .app-visual, .login-container {
+                padding: 2rem;
+            }
+        }
+
+        /* Modern Dark Mode Toggle Button */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 25px;
+            width: 50px;
+            height: 28px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 4px 15px var(--card-shadow);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            padding: 2px;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+
+        .theme-toggle-slider {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: white;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transform: translateX(0);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        [data-theme="dark"] .theme-toggle {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .theme-toggle-slider {
+            transform: translateX(22px);
+            background: linear-gradient(135deg, #ffd700 0%, #ff6b35 100%);
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+        }
+
+        .theme-toggle:active .theme-toggle-slider {
+            transform: scale(0.9) translateX(var(--slider-position, 0));
+        }
+
+        [data-theme="dark"] .theme-toggle:active .theme-toggle-slider {
+            transform: scale(0.9) translateX(22px);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="app-visual">
+            <div class="logo">TenderChain</div>
+            <h2>Welcome to the Blockchain Tender Platform</h2>
+            <p>Access your secure dashboard to manage tenders, proposals, and contracts with full transparency and efficiency.</p>
+            
+            <div class="app-features">
+                <div class="feature-item">
+                    <span class="feature-icon">🔒</span>
+                    <span>Secure blockchain transactions</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">⚡</span>
+                    <span>Smart contract automation</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📊</span>
+                    <span>Real-time analytics dashboard</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🔍</span>
+                    <span>Complete transparency</span>
+                </div>
+            </div>
+            
+            <div class="blockchain-visual">
+                <div class="block">📄</div>
+                <div class="block">🔐</div>
+                <div class="block">✅</div>
+                <div class="block">🏢</div>
+                <div class="block">⛓️</div>
+                <div class="block">🔍</div>
+                <div class="block">💰</div>
+                <div class="block">📊</div>
+                <div class="block">🎯</div>
+            </div>
+        </div>
+        
+        <div class="login-container">
+            <h2>Access Your Dashboard</h2>
+            
+            <div class="user-type">
+                <h3>Select your role:</h3>
+                <div class="role-selector">
+                    <div class="role-option" data-role="contractor">
+                        <div class="role-icon">🏗️</div>
+                        <div>Contractor</div>
+                    </div>
+                    <div class="role-option" data-role="government">
+                        <div class="role-icon">🏛️</div>
+                        <div>Government</div>
+                    </div>
+                    <div class="role-option" data-role="verifier">
+                        <div class="role-icon">✅</div>
+                        <div>Verifier</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="login-options">
+                <button id="connectWalletBtn" class="btn btn-wallet">
+                    <span>🔗</span>
+                    <span>Connect Wallet</span>
+                </button>
+                
+                <div class="separator">or</div>
+                
+                <button id="loginBtn" class="btn btn-primary">
+                    <span>🔑</span>
+                    <span>Login with Credentials</span>
+                </button>
+                
+                <button id="registerBtn" class="btn btn-secondary">
+                    <span>📝</span>
+                    <span>Register New Account</span>
+                </button>
+            </div>
+            
+            <div class="back-to-site">
+                <a href="index.html">
+                    <span>←</span>
+                    <span>Back to Main Site</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    <script>
+        // Role selection
+        document.querySelectorAll('.role-option').forEach(option => {
+            option.addEventListener('click', function() {
+                // Remove selected class from all options
+                document.querySelectorAll('.role-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                
+                // Add selected class to clicked option
+                this.classList.add('selected');
+                
+                // Store selected role
+                const selectedRole = this.getAttribute('data-role');
+                localStorage.setItem('selectedRole', selectedRole);
+            });
+        });
+        
+        // Login button click handler
+        document.getElementById('loginBtn').addEventListener('click', function() {
+            const selectedRole = localStorage.getItem('selectedRole') || 'contractor';
+            window.location.href = `src/auth/login-fixed.html?role=${selectedRole}`;
+        });
+        
+        // Register button click handler
+        document.getElementById('registerBtn').addEventListener('click', function() {
+            const selectedRole = localStorage.getItem('selectedRole') || 'contractor';
+            window.location.href = `src/auth/register-fixed.html?role=${selectedRole}`;
+        });
+        
+        // Initialize Web3 and contract instances
+        let web3;
+        let contracts = {};
+        
+        async function initWeb3() {
+            if (typeof window.ethereum !== 'undefined') {
+                web3 = new Web3(window.ethereum);
+                return true;
+            } else {
+                alert('Please install MetaMask to use this application.');
+                return false;
+            }
+        }
+        
+        async function loadContracts() {
+            try {
+                // Load contract addresses and ABIs from contracts.js
+                const response = await fetch('web3/contracts.js');
+                const contractsScript = await response.text();
+                
+                // Execute the contracts script to get CONTRACT_ADDRESSES and ABIs
+                eval(contractsScript);
+                
+                // Initialize contract instances
+                contracts.contractorRepo = new web3.eth.Contract(ContractorRepoAbi, CONTRACT_ADDRESSES.ContractorRepo);
+                contracts.governmentOfficerRepo = new web3.eth.Contract(GovernmentOfficerRepoAbi, CONTRACT_ADDRESSES.GovernmentOfficerRepo);
+                contracts.verifierRepo = new web3.eth.Contract(VerifierRepoAbi, CONTRACT_ADDRESSES.VerifierRepo || CONTRACT_ADDRESSES.Verifier);
+                
+                return true;
+            } catch (error) {
+                console.error('Error loading contracts:', error);
+                return false;
+            }
+        }
+        
+        async function verifyUserRole(address, role) {
+            try {
+                console.log(`Verifying ${role} role for address: ${address}`);
+                
+                switch(role) {
+                    case 'contractor':
+                        try {
+                            const contractorData = await contracts.contractorRepo.methods.getContractor(address).call();
+                            return contractorData && contractorData[0] && contractorData[0] !== '0x0000000000000000000000000000000000000000';
+                        } catch (e) {
+                            console.log('Contractor not found or error:', e.message);
+                            return false;
+                        }
+                        
+                    case 'government':
+                        try {
+                            const officerData = await contracts.governmentOfficerRepo.methods.getGovernmentOfficer(address).call();
+                            return officerData && officerData[0] && officerData[0] !== '0x0000000000000000000000000000000000000000';
+                        } catch (e) {
+                            console.log('Government officer not found or error:', e.message);
+                            return false;
+                        }
+                        
+                    case 'verifier':
+                        try {
+                            // Try verifier-specific contract if available
+                            if (contracts.verifierRepo && contracts.verifierRepo.methods.getVerifier) {
+                                const verifierData = await contracts.verifierRepo.methods.getVerifier(address).call();
+                                return verifierData && verifierData[0] && verifierData[0] !== '0x0000000000000000000000000000000000000000';
+                            } else {
+                                // Fallback: check if address has any verifier permissions
+                                console.log('Verifier contract not fully implemented, allowing access for demo');
+                                return true; // Allow for demo purposes
+                            }
+                        } catch (e) {
+                            console.log('Verifier check failed, allowing for demo:', e.message);
+                            return true; // Allow for demo purposes
+                        }
+                        
+                    default:
+                        return false;
+                }
+            } catch (error) {
+                console.error('Error verifying user role:', error);
+                return false;
+            }
+        }
+        
+        async function requestSignature(address, role) {
+            try {
+                const message = `Login to TenderChain as ${role}\nAddress: ${address}\nTimestamp: ${Date.now()}`;
+                
+                console.log('Requesting signature for message:', message);
+                
+                const signature = await window.ethereum.request({
+                    method: 'personal_sign',
+                    params: [web3.utils.utf8ToHex(message), address]
+                });
+                
+                console.log('Signature received:', signature);
+                return { message, signature };
+            } catch (error) {
+                console.error('Error requesting signature:', error);
+                throw error;
+            }
+        }
+        
+        // Connect Wallet functionality with proper authentication
+        document.getElementById('connectWalletBtn').addEventListener('click', async function() {
+            const connectBtn = this;
+            const originalText = connectBtn.innerHTML;
+            
+            try {
+                // Initialize Web3
+                if (!(await initWeb3())) return;
+                
+                connectBtn.innerHTML = '🔄 Connecting...';
+                connectBtn.disabled = true;
+                
+                // Request account access
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                
+                // Get connected account
+                const accounts = await web3.eth.getAccounts();
+                if (accounts.length === 0) {
+                    throw new Error('No accounts found. Please unlock MetaMask.');
+                }
+                
+                const account = accounts[0];
+                connectBtn.innerHTML = '⏳ Loading contracts...';
+                
+                // Load contracts
+                if (!(await loadContracts())) {
+                    throw new Error('Failed to load smart contracts. Please try again.');
+                }
+                
+                // Get selected role
+                const selectedRole = localStorage.getItem('selectedRole') || 'contractor';
+                connectBtn.innerHTML = `🔍 Verifying ${selectedRole} role...`;
+                
+                // Verify user role on blockchain
+                const isValidRole = await verifyUserRole(account, selectedRole);
+                
+                if (!isValidRole) {
+                    throw new Error(`Invalid address used for signing in. Use the address allocated to you during KYC process.`);
+                }
+                
+                connectBtn.innerHTML = '✍️ Please sign to login...';
+                
+                // Request signature for authentication
+                const authData = await requestSignature(account, selectedRole);
+                
+                // Store authentication data
+                localStorage.setItem('userAccount', account);
+                localStorage.setItem('userRole', selectedRole);
+                localStorage.setItem('authSignature', authData.signature);
+                localStorage.setItem('authMessage', authData.message);
+                localStorage.setItem('loginTime', Date.now().toString());
+                
+                // Show success
+                connectBtn.innerHTML = '✅ Authentication successful!';
+                connectBtn.style.background = '#28a745';
+                
+                // Show success message
+                const message = document.createElement('div');
+                message.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #28a745;
+                    color: white;
+                    padding: 1rem 2rem;
+                    border-radius: 8px;
+                    z-index: 10000;
+                    animation: slideInRight 0.5s ease-out;
+                `;
+                message.textContent = `Authenticated as ${selectedRole}! Redirecting...`;
+                document.body.appendChild(message);
+                
+                setTimeout(() => {
+                    document.body.removeChild(message);
+                    
+                    // Redirect to appropriate dashboard
+                    let dashboardUrl;
+                    switch(selectedRole) {
+                        case 'contractor':
+                            dashboardUrl = 'src/dashboards/dashboardContractor-modern.html';
+                            break;
+                        case 'government':
+                            dashboardUrl = 'src/dashboards/dashboardGovernmentOfficer-modern.html';
+                            break;
+                        case 'verifier':
+                            dashboardUrl = 'src/dashboards/dashboardVerifier-modern.html';
+                            break;
+                        default:
+                            dashboardUrl = 'src/dashboards/dashboardContractor-modern.html';
+                    }
+                    
+                    window.location.href = dashboardUrl;
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Authentication failed:', error);
+                
+                let errorMessage = error.message;
+                if (error.code === 4001) {
+                    errorMessage = 'You rejected the signature request. Please try again and approve the signature to login.';
+                } else if (error.code === -32602) {
+                    errorMessage = 'Invalid signature request. Please try again.';
+                }
+                
+                // Show error message
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #dc3545;
+                    color: white;
+                    padding: 1rem 2rem;
+                    border-radius: 8px;
+                    z-index: 10000;
+                    max-width: 400px;
+                    animation: slideInRight 0.5s ease-out;
+                `;
+                errorDiv.textContent = errorMessage;
+                document.body.appendChild(errorDiv);
+                
+                setTimeout(() => {
+                    if (document.body.contains(errorDiv)) {
+                        document.body.removeChild(errorDiv);
+                    }
+                }, 5000);
+                
+                // Reset button
+                connectBtn.innerHTML = originalText;
+                connectBtn.style.background = '#f6851b';
+                connectBtn.disabled = false;
+            }
+        });
+        
+        // Animation for slideInRight
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+
+    <!-- Modern Dark Mode Toggle Button -->
+    <button class="theme-toggle" id="themeToggle" title="Toggle Dark/Light Mode">
+        <div class="theme-toggle-slider" id="themeIcon">🌙</div>
+    </button>
+
+    <script>
+        // Enhanced dark mode toggle functionality
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const html = document.documentElement;
+        
+        // Check for saved theme preference or default to 'light'
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        html.setAttribute('data-theme', currentTheme);
+        themeIcon.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+        
+        themeToggle.addEventListener('click', function() {
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            themeIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+            
+            // Add a smooth transition effect
+            themeToggle.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                themeToggle.style.transform = 'scale(1)';
+            }, 150);
+        });
+        
+        // Add loading animation on page load
+        window.addEventListener('load', function() {
+            themeToggle.style.animation = 'fadeInUp 0.6s ease-out 0.5s both';
+        });
+        
+        // Add fade in animation keyframe
+        const fadeInStyle = document.createElement('style');
+        fadeInStyle.textContent = `
+            @keyframes fadeInUp {
+                from { opacity: 0; transform: translateY(30px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        `;
+        document.head.appendChild(fadeInStyle);
+    </script>
+
+</body>
+</html>

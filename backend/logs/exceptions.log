@@ -1,0 +1,26 @@
+2025-08-19 01:24:30 [ERROR]: Error: Cannot find module './middleware/errorMiddleware'
+Require stack:
+- /home/aniketdatar/Desktop/Other/tendersystem-blockchain/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1212:15)
+    at Module._load (node:internal/modules/cjs/loader:1043:27)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/home/aniketdatar/Desktop/Other/tendersystem-blockchain/backend/server.js:12:36)
+    at Module._compile (node:internal/modules/cjs/loader:1529:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Module._load (node:internal/modules/cjs/loader:1096:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+2025-08-19 01:30:57 [ERROR]: Error: Cannot find module './middleware/errorMiddleware'
+Require stack:
+- /home/aniketdatar/Desktop/Other/tendersystem-blockchain/backend/server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1039:15)
+    at Module._load (node:internal/modules/cjs/loader:885:27)
+    at Module.require (node:internal/modules/cjs/loader:1105:19)
+    at require (node:internal/modules/cjs/helpers:103:18)
+    at Object.<anonymous> (/home/aniketdatar/Desktop/Other/tendersystem-blockchain/backend/server.js:12:36)
+    at Module._compile (node:internal/modules/cjs/loader:1218:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1272:10)
+    at Module.load (node:internal/modules/cjs/loader:1081:32)
+    at Module._load (node:internal/modules/cjs/loader:922:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:81:12)
