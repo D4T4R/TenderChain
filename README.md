@@ -47,8 +47,9 @@ tendersystem-blockchain/
 
 ### Prerequisites
 - Node.js (v14+)
-- Ganache CLI or Ganache GUI
-- MetaMask browser extension
+- Ganache CLI or Ganache GUI for native blokchain
+- MetaMask browser extension for authorization
+- IPFS for decentralized media storage
 
 ### Setup
 1. **Install dependencies:**
