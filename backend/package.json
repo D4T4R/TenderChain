@@ -21,7 +21,7 @@
     "joi": "^17.9.1",
     "multer": "^1.4.5-lts.1",
     "ipfs-http-client": "^60.0.0",
-    "web3": "^1.9.0",
+    "web3": "^4.16.0",
     "express-rate-limit": "^6.7.0",
     "compression": "^1.7.4",
     "winston": "^3.8.2",
