@@ -36,6 +36,12 @@
                             <p>Existing Tenders</p>
                         </a>
                     </li>
+                    <li :class="{active:isTenderSummaries}">
+                        <a href="#" @click="tenderSummaries">
+                            <i class="material-icons">assignment</i>
+                            <p>Tender Summaries</p>
+                        </a>
+                    </li>
                      <li :class="{active:isOnContract}">
                         <a href="#" @click="ongoingContract">
                             <i class="material-icons">dashboard</i>
@@ -76,6 +82,26 @@
                     </div>
             </div>
             
+        </div>
+    </div>
+    
+    <!-- Full Summary Modal -->
+    <div class="modal fade" id="summaryModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="summaryModalTitle">Tender Document Summary</h4>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="summaryModalBody">
+                    <!-- Modal content will be populated by JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -380,6 +406,231 @@
             </div>
         </div>       
         </div>       
+    </template>
+
+    <!-- Tender Summaries Template -->
+    <template id="tender-summaries">
+        <div>
+            <!-- Search and Filter Section -->
+            <div class="card">
+                <div class="card-header card-header-icon" data-background-color="blue">
+                    <i class="material-icons">search</i>
+                </div>
+                <div class="card-content">
+                    <h4 class="card-title">Search Tender Summaries</h4>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="bmd-label-floating">Search Keywords</label>
+                                <input type="text" class="form-control" v-model="searchQuery" @input="searchSummaries" placeholder="Search by project type, location, keywords...">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="bmd-label-static">Work Type</label>
+                                <select class="form-control" v-model="filterWorkType" @change="filterSummaries">
+                                    <option value="">All Types</option>
+                                    <option value="Construction">Construction</option>
+                                    <option value="Roads">Roads</option>
+                                    <option value="Bridges">Bridges</option>
+                                    <option value="Water">Water</option>
+                                    <option value="Electrical">Electrical</option>
+                                    <option value="Maintenance">Maintenance</option>
+                                    <option value="Supply">Supply</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="bmd-label-floating">Location</label>
+                                <input type="text" class="form-control" v-model="filterLocation" @input="filterSummaries" placeholder="Filter by location...">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-primary" @click="loadSummaries" style="margin-top: 20px;">
+                                <i class="material-icons">refresh</i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Section -->
+            <div class="row" v-if="statistics">
+                <div class="col-lg-3 col-md-6 col-sm-6">
+                    <div class="card card-stats">
+                        <div class="card-header card-header-success card-header-icon">
+                            <div class="card-icon">
+                                <i class="material-icons">assignment</i>
+                            </div>
+                            <p class="card-category">Total Summaries</p>
+                            <h3 class="card-title">{{statistics.totalSummaries}}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 col-sm-6">
+                    <div class="card card-stats">
+                        <div class="card-header card-header-warning card-header-icon">
+                            <div class="card-icon">
+                                <i class="material-icons">build</i>
+                            </div>
+                            <p class="card-category">Most Common</p>
+                            <h3 class="card-title">{{mostCommonCategory}}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 col-sm-6">
+                    <div class="card card-stats">
+                        <div class="card-header card-header-info card-header-icon">
+                            <div class="card-icon">
+                                <i class="material-icons">trending_up</i>
+                            </div>
+                            <p class="card-category">Avg Confidence</p>
+                            <h3 class="card-title">{{avgConfidence}}%</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 col-sm-6">
+                    <div class="card card-stats">
+                        <div class="card-header card-header-rose card-header-icon">
+                            <div class="card-icon">
+                                <i class="material-icons">update</i>
+                            </div>
+                            <p class="card-category">Last Updated</p>
+                            <h3 class="card-title" style="font-size: 18px;">{{formatDate(statistics.lastUpdated)}}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summaries List -->
+            <div class="card">
+                <div class="card-header card-header-icon" data-background-color="rose">
+                    <i class="material-icons">assignment</i>
+                </div>
+                <div class="card-content">
+                    <h4 class="card-title">Document Summaries ({{filteredSummaries.length}} found)</h4>
+                    
+                    <div v-if="loadingSummaries" class="text-center">
+                        <i class="fa fa-spinner fa-spin fa-2x"></i>
+                        <p>Loading summaries...</p>
+                    </div>
+                    
+                    <div v-if="!loadingSummaries && filteredSummaries.length === 0" class="text-center">
+                        <i class="material-icons" style="font-size: 48px; color: #999;">assignment</i>
+                        <p>No document summaries found. Upload tender documents to generate summaries.</p>
+                    </div>
+                    
+                    <div class="row" v-if="!loadingSummaries && filteredSummaries.length > 0">
+                        <div class="col-md-6" v-for="summary in paginatedSummaries" :key="summary.tenderId">
+                            <div class="card" style="margin-bottom: 20px;">
+                                <div class="card-header" :class="getCategoryColor(summary.category)">
+                                    <h4 class="card-title" style="color: white; margin: 0;">{{summary.fileName}}</h4>
+                                    <p class="card-category" style="color: rgba(255,255,255,0.8); margin: 0;">{{summary.summary.workType}} - {{summary.summary.location}}</p>
+                                </div>
+                                <div class="card-body">
+                                    <div class="summary-info">
+                                        <p><strong>Tender ID:</strong> {{summary.tenderId}}</p>
+                                        <p><strong>Estimated Value:</strong> {{summary.summary.estimatedValue}}</p>
+                                        <p><strong>Timeline:</strong> {{summary.summary.timeline}}</p>
+                                        <p><strong>Project Overview:</strong></p>
+                                        <p class="text-muted">{{truncateText(summary.summary.overview, 150)}}</p>
+                                        <p><strong>Project Scope:</strong></p>
+                                        <p class="text-muted">{{truncateText(summary.summary.projectScope, 100)}}</p>
+                                        
+                                        <div class="confidence-indicator">
+                                            <span class="badge" :class="getConfidenceBadge(summary.summary.confidence)">{{summary.summary.confidence}}% Confidence</span>
+                                        </div>
+                                        
+                                        <div class="summary-actions" style="margin-top: 15px;">
+                                            <button class="btn btn-primary btn-sm" @click="viewFullSummary(summary)">
+                                                <i class="material-icons">visibility</i> View Full Summary
+                                            </button>
+                                            <small class="text-muted" style="float: right; margin-top: 8px;">{{formatDate(summary.processedAt)}}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <div v-if="totalPages > 1" class="text-center" style="margin-top: 20px;">
+                        <nav>
+                            <ul class="pagination">
+                                <li class="page-item" :class="{disabled: currentPage === 1}">
+                                    <a class="page-link" @click="changePage(currentPage - 1)" href="#">Previous</a>
+                                </li>
+                                <li class="page-item" v-for="page in visiblePages" :key="page" :class="{active: page === currentPage}">
+                                    <a class="page-link" @click="changePage(page)" href="#">{{page}}</a>
+                                </li>
+                                <li class="page-item" :class="{disabled: currentPage === totalPages}">
+                                    <a class="page-link" @click="changePage(currentPage + 1)" href="#">Next</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Full Summary Modal Template -->
+    <template id="full-summary-modal">
+        <div class="modal fade" id="summaryModal" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title">{{selectedSummary.fileName}}</h4>
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span>&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div v-if="selectedSummary">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>Basic Information</h5>
+                                    <table class="table table-bordered">
+                                        <tr><td><strong>Tender ID</strong></td><td>{{selectedSummary.tenderId}}</td></tr>
+                                        <tr><td><strong>Work Type</strong></td><td>{{selectedSummary.summary.workType}}</td></tr>
+                                        <tr><td><strong>Location</strong></td><td>{{selectedSummary.summary.location}}</td></tr>
+                                        <tr><td><strong>Estimated Value</strong></td><td>{{selectedSummary.summary.estimatedValue}}</td></tr>
+                                        <tr><td><strong>Timeline</strong></td><td>{{selectedSummary.summary.timeline}}</td></tr>
+                                        <tr><td><strong>Category</strong></td><td><span class="badge badge-info">{{selectedSummary.category}}</span></td></tr>
+                                        <tr><td><strong>Confidence</strong></td><td><span :class="getConfidenceBadge(selectedSummary.summary.confidence)">{{selectedSummary.summary.confidence}}%</span></td></tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Key Requirements</h5>
+                                    <ul class="list-group" v-if="selectedSummary.summary.keyRequirements.length > 0">
+                                        <li class="list-group-item" v-for="req in selectedSummary.summary.keyRequirements" :key="req">
+                                            {{req}}
+                                        </li>
+                                    </ul>
+                                    <p v-else class="text-muted">No specific requirements extracted</p>
+                                </div>
+                            </div>
+                            <div class="row" style="margin-top: 20px;">
+                                <div class="col-md-12">
+                                    <h5>Project Overview</h5>
+                                    <p class="well" style="background: #f8f9fa; padding: 15px; border-radius: 5px;">{{selectedSummary.summary.overview}}</p>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <h5>Project Scope</h5>
+                                    <p class="well" style="background: #f8f9fa; padding: 15px; border-radius: 5px;">{{selectedSummary.summary.projectScope}}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </template>
 
     <template id="view-submitted-docs">
