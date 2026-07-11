@@ -28,7 +28,7 @@
     "mammoth": "^1.11.0",
     "moment": "^2.29.4",
     "mongoose": "^7.8.9",
-    "morgan": "^1.10.0",
+    "morgan": "^1.11.0",
     "multer": "^2.2.0",
     "natural": "^8.1.0",
     "pdf-parse": "^1.1.1",
