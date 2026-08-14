@@ -53,7 +53,7 @@ check_node() {
 cleanup() {
     print_warning "Cleaning up existing processes..."
     pkill -f ganache || true
-    pkill -f "serve ." || true
+    pkill -f "next dev" || true
     sleep 2
 }
 
@@ -87,10 +87,10 @@ start_ganache() {
 # Compile and deploy contracts
 deploy_contracts() {
     print_message "Compiling smart contracts..."
-    npx truffle compile --config truffle.js
-    
+    npx truffle compile
+
     print_message "Deploying contracts to Ganache..."
-    npx truffle migrate --config truffle.js --reset
+    npx truffle migrate --reset
     
     if [ $? -eq 0 ]; then
         print_message "Contracts deployed successfully ✓"
@@ -100,25 +100,38 @@ deploy_contracts() {
     fi
 }
 
-# Start frontend server
+# Start frontend server (Next.js app in frontend-next/)
 start_frontend() {
     print_message "Starting frontend server..."
-    npm start > frontend.log 2>&1 &
+
+    if [ ! -d frontend-next/node_modules ]; then
+        print_message "Installing frontend dependencies..."
+        npm --prefix frontend-next install
+    fi
+
+    if [ ! -f frontend-next/.env.local ]; then
+        print_error "frontend-next/.env.local is missing."
+        print_error "Copy frontend-next/.env.local.example and fill in the addresses"
+        print_error "printed by 'npx truffle migrate'."
+        exit 1
+    fi
+
+    npm --prefix frontend-next run dev > frontend.log 2>&1 &
     FRONTEND_PID=$!
     echo $FRONTEND_PID > frontend.pid
-    
+
     print_message "Frontend PID: $FRONTEND_PID"
     print_message "Waiting for frontend server..."
-    sleep 3
-    
+    sleep 5
+
     # Check if frontend is running
     if ! ps -p $FRONTEND_PID > /dev/null; then
         print_error "Failed to start frontend. Check frontend.log for details."
         cat frontend.log
         exit 1
     fi
-    
-    print_message "Frontend server started on http://localhost:3000"
+
+    print_message "Frontend server started on http://localhost:3002"
 }
 
 # Display Ganache account information
@@ -155,8 +168,8 @@ show_instructions() {
     echo "   - Chain ID: $(grep "network_id" ganache.log | head -1 | grep -o '[0-9]\+')"
     echo "   - Currency Symbol: ETH"
     echo "3. Import the accounts above into MetaMask"
-    echo "4. Visit http://localhost:3000/register.html to register"
-    echo "5. Visit http://localhost:3000/login-new.html to login"
+    echo "4. Copy the deployed addresses into frontend-next/.env.local"
+    echo "5. Visit http://localhost:3002 and pick a role dashboard"
     echo
     print_message "📁 Useful files:"
     echo "- ganache.log: Ganache blockchain logs"
@@ -192,7 +205,7 @@ fi
 
 # Cleanup any remaining processes
 pkill -f ganache || true
-pkill -f "serve ." || true
+pkill -f "next dev" || true
 
 echo "All processes stopped"
 EOF

@@ -23,3 +23,6 @@ frontend-next/out/
 # Tooling
 .claude-flow/
 .DS_Store
+
+# Machine-specific preview launcher (contains an absolute nvm node path)
+.claude/launch.json

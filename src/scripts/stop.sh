@@ -20,7 +20,7 @@ print_success() {
 
 # Kill processes by pattern
 print_status "Stopping Ganache and frontend processes..."
-pkill -f "ganache\|truffle\|npm.*start\|serve.*3000" 2>/dev/null
+pkill -f "ganache\|truffle\|npm.*start\|next" 2>/dev/null
 
 # Kill processes on specific ports
 print_status "Freeing ports 3000 and 8545..."

@@ -8,46 +8,54 @@ TenderChain is a comprehensive blockchain-based tender management system with en
 ```
 tendersystem-blockchain/
 ├── README.md                    # This file
-├── index.html                   # Main landing page
-├── package.json                 # Node.js dependencies
-├── truffle-config.js           # Truffle configuration
-├── web3.min.js                 # Web3 library
+├── package.json                 # Truffle / solc tooling
+├── truffle-config.js            # Truffle configuration
+├── technical-details.html       # Technical documentation (architecture, algorithms)
 │
 ├── contracts/                   # Smart contracts
-├── migrations/                  # Deployment scripts
-├── build/                      # Compiled contracts
-├── backend/                    # Node.js backend (MongoDB + APIs)
-├── frontend/                   # Frontend assets
-├── web3/                       # Web3 configurations and contracts
+│   └── access/TenderRoles.sol   # Shared AccessControl roles
+├── migrations/                  # Deployment scripts (incl. 5_configure_roles.js)
+├── test/                        # Truffle tests
+├── build/contracts/             # Compiled artifacts (ABI source for the frontend)
 │
-├── src/
-│   ├── dashboards/             # Modern dashboard files
-│   │   ├── dashboardGovernmentOfficer-modern.html
-│   │   ├── dashboardContractor-modern.html
-│   │   └── dashboardVerifier-modern.html
-│   ├── auth/                   # Authentication pages
-│   │   ├── login-fixed.html
-│   │   ├── login-new.html
-│   │   └── register-fixed.html
-│   └── scripts/                # Utility scripts
-│       ├── setup.sh
-│       ├── stop.sh
-│       ├── quick-start.sh
-│       └── test_enhanced_system.js
+├── backend/                     # Node.js backend (MongoDB + APIs)
 │
-└── docs/                       # Documentation
-    ├── ENHANCED_DEPLOYMENT_SUMMARY.md
-    ├── BACKEND_ARCHITECTURE.md
-    ├── PROJECT_ANALYSIS_AND_FIXES.md
-    ├── METAMASK_SETUP_GUIDE.md
-    └── README.md (original)
+├── frontend-next/               # Next.js app - the only frontend
+│   └── src/
+│       ├── app/                 # Landing page + role dashboards
+│       ├── components/          # Shared UI
+│       └── lib/
+│           ├── api/             # Backend API client
+│           ├── contracts/       # Generated ABIs + addresses
+│           └── web3/            # Wallet provider and contract hooks
+│
+├── scripts/generate-abis.mjs    # Regenerates frontend ABIs from build/contracts
+│
+├── src/scripts/                 # Utility shell scripts
+│
+└── docs/                        # Documentation
 ```
+
+### Frontend
+
+The four role dashboards (officer, contractor, verifier, public) live in
+`frontend-next/`. It requires **Node.js >= 20.9**; an `.nvmrc` pins 22.
+
+```bash
+npx truffle compile              # produce build/contracts
+npm run generate:abis            # regenerate frontend-next ABIs
+cp frontend-next/.env.local.example frontend-next/.env.local
+# paste the addresses printed by `npx truffle migrate` into .env.local
+npm run frontend                 # http://localhost:3002
+```
+
+ABIs are generated from `build/contracts`, never edited by hand.
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js (v14+)
-- Ganache CLI or Ganache GUI for native blokchain
+- Node.js **>= 20.9** (required by Next.js; `frontend-next/.nvmrc` pins 22)
+- Ganache CLI or Ganache GUI for native blockchain
 - MetaMask browser extension for authorization
 - IPFS for decentralized media storage
 
@@ -67,14 +75,17 @@ tendersystem-blockchain/
    npx truffle migrate --reset --network development
    ```
 
-4. **Start frontend server:**
+4. **Configure and start the frontend:**
    ```bash
-   python3 -m http.server 3000
+   npm run generate:abis
+   cp frontend-next/.env.local.example frontend-next/.env.local
+   # paste the addresses printed by step 3 into .env.local
+   npm run frontend
    ```
 
 5. **Access the application:**
-   - Main page: http://localhost:3000
-   - Login: http://localhost:3000/src/auth/login-fixed.html
+   - App: http://localhost:3002
+   - Pick a role dashboard from the landing page
 
 ### Test the System
 ```bash
@@ -103,7 +114,7 @@ Key contracts deployed on local Ganache:
 - **PublicClaims**: `0xF16165f1046f1B3cDB37dA25E835B986E696313A`
 - **FactoryVerifier**: `0x8914a9E5C5E234fDC3Ce9dc155ec19F43947ab59`
 
-*Full contract list available in: `web3/contracts.js`*
+*Full contract list available in: `build/contracts/`*
 
 ## 👥 User Roles
 
@@ -144,7 +155,7 @@ npm run dev
 ```
 
 ### Frontend Development
-Modern dashboards are located in `src/dashboards/`. Each dashboard is a self-contained HTML file with embedded JavaScript and CSS.
+Dashboards are React pages under `frontend-next/src/app/`, sharing UI from `frontend-next/src/components/`.
 
 ### Smart Contract Development
 Contracts are in the `contracts/` directory. After making changes:
