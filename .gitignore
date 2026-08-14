@@ -1,6 +1,25 @@
+# Dependencies
 node_modules
 backend/node_modules
+frontend-next/node_modules
 
+# Environment / secrets
+.env
+.env.local
+.env.*.local
 backend/.env
 
+# Logs
+*.log
+backend/logs/
+npm-debug.log*
+
+# Build output
+# NOTE: build/contracts/ is intentionally tracked - it is the ABI source for the
+# frontend and carries deployed network addresses.
+frontend-next/.next/
+frontend-next/out/
+
+# Tooling
 .claude-flow/
+.DS_Store

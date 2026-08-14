@@ -173,6 +173,11 @@ This project is developed for educational and demonstration purposes.
 
 ---
 
-**Status**: ✅ Staging Ready  
+**Status**: 🚧 In development — local demo only, **not production ready**  
 **Last Updated**: Enhanced system with stake-based security and transparency features  
-**Network**: Local Ganache (configurable for testnets/mainnet)
+**Network**: Local Ganache only (testnet/mainnet deployment is not yet safe)
+
+> **Warning**
+> Do not deploy this system to a public network or use it with real funds.
+> Smart contract access control is still being implemented and the backend API
+> has no authentication layer yet.

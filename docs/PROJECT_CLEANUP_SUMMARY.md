@@ -133,10 +133,17 @@ All removed files are safely stored in: `/home/aniketdatar/Downloads/tendersyste
 - Obvious entry points and main files
 - Comprehensive documentation
 
-### 5. **Production Ready**
-- Only essential, working files remain
-- Modern, tested components active
-- Clear deployment paths
+### 5. **Not Production Ready**
+This project is a work in progress and must not be deployed to a public network
+or handle real funds in its current state. Known blockers:
+
+- **Smart contracts**: access control is being introduced; until that work is
+  complete, registry and factory mutators are callable by any address.
+- **Backend**: most API routes are stubs. There is no authentication middleware
+  and no JWT verification, so protected functionality does not yet exist.
+- **Tests**: no meaningful automated test coverage.
+
+See the repository README for current status.
 
 ## 🔍 Current Project State
 

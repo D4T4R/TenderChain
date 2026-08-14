@@ -1,1 +1,329 @@
-# Document Processing and Summarization Feature\n\n## Overview\n\nThis feature automatically processes tender documents uploaded by government officers and generates intelligent summaries for public transparency. It uses advanced NLP techniques and optional AI integration to extract key information and create readable summaries.\n\n## Architecture\n\n### Components\n\n1. **Document Processor Service** (`backend/services/documentProcessor.js`)\n   - Text extraction from PDF, Word, and text files\n   - NLP processing for entity extraction\n   - Rule-based and AI-powered summarization\n   - Confidence scoring\n\n2. **File Upload API** (`backend/routes/fileRoutes.js`)\n   - Document upload handling\n   - Background processing queue\n   - Summary retrieval endpoints\n   - Statistics and analytics\n\n3. **Database Model** (`backend/models/TenderSummary.js`)\n   - MongoDB schema for storing summaries\n   - Search and filtering capabilities\n   - Statistics and aggregation methods\n\n4. **Public Dashboard** (`frontend/examples/dashboardNormal.html`)\n   - Summary display with search and filters\n   - Statistics dashboard\n   - Modal views for detailed information\n\n5. **Upload Interface** (`frontend/examples/tender-document-upload.html`)\n   - Government officer document upload interface\n   - Drag-and-drop functionality\n   - Real-time processing feedback\n\n## Features\n\n### Document Processing\n\n- **Supported Formats**: PDF, Word (.doc, .docx), Plain text\n- **File Size Limit**: 10MB per document\n- **Processing Modes**: Immediate or background processing\n- **Duplicate Detection**: Prevents multiple summaries for the same tender\n\n### Information Extraction\n\n- **Basic Information**:\n  - Work type (Construction, Roads, Bridges, etc.)\n  - Location and places\n  - Estimated values and monetary amounts\n  - Timeline and dates\n  - Organizations involved\n\n- **Advanced Analysis**:\n  - Project scope identification\n  - Key requirements extraction\n  - Work description summarization\n  - Confidence scoring (0-100%)\n\n### Public Dashboard Features\n\n- **Search and Filtering**:\n  - Text search across summaries\n  - Filter by work type\n  - Filter by location\n  - Category-based filtering\n\n- **Statistics**:\n  - Total summaries count\n  - Most common project types\n  - Average confidence scores\n  - Category breakdowns\n\n- **Responsive Design**:\n  - Card-based layout\n  - Pagination support\n  - Modal popups for detailed views\n  - Mobile-friendly interface\n\n## Installation and Setup\n\n### 1. Install Dependencies\n\n```bash\ncd backend\nnpm install pdf-parse natural compromise multer mammoth @huggingface/inference bull redis\n```\n\n### 2. Environment Configuration\n\nAdd to your `.env` file:\n\n```env\n# AI/ML Configuration (optional)\nHUGGINGFACE_API_TOKEN=your_huggingface_api_token_here\n\n# Redis Configuration (for background processing)\nREDIS_URL=redis://localhost:6379\nREDIS_HOST=localhost\nREDIS_PORT=6379\n\n# File Upload Configuration\nMAX_FILE_SIZE=10485760\nALLOWED_FILE_TYPES=application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain\n```\n\n### 3. Start Required Services\n\n```bash\n# Start MongoDB\nsudo systemctl start mongodb\n\n# Start Redis (optional, for background processing)\nsudo systemctl start redis\n\n# Start the backend server\ncd backend\nnpm start\n```\n\n### 4. Access the Interfaces\n\n- **Upload Interface**: `http://localhost:3000/tender-document-upload.html`\n- **Public Dashboard**: `http://localhost:3000/dashboardNormal.html` (Tender Summaries tab)\n- **API Endpoints**: `http://localhost:3001/api/files/`\n\n## API Endpoints\n\n### Upload Document\n```http\nPOST /api/files/upload-tender-document\n```\n\n**Parameters**:\n- `document`: File (PDF/Word/Text)\n- `tenderId`: String\n- `tenderAddress`: String (blockchain address)\n- `uploaderAddress`: String (wallet address)\n- `processAsync`: Boolean (optional)\n\n### Get Public Summaries\n```http\nGET /api/files/public-summaries\n```\n\n**Query Parameters**:\n- `category`: Filter by category\n- `workType`: Filter by work type\n- `location`: Filter by location\n- `limit`: Number of results\n- `page`: Page number\n- `search`: Search query\n\n### Get Tender Summary\n```http\nGET /api/files/tender-summary/:tenderAddress\n```\n\n### Get Statistics\n```http\nGET /api/files/statistics\n```\n\n### Check Job Status\n```http\nGET /api/files/job-status/:jobId\n```\n\n## Usage Examples\n\n### 1. Upload a Tender Document\n\n```javascript\nconst formData = new FormData();\nformData.append('document', fileInput.files[0]);\nformData.append('tenderId', 'TND001');\nformData.append('tenderAddress', '0x1234...abcd');\nformData.append('uploaderAddress', '0x5678...efgh');\n\nconst response = await fetch('/api/files/upload-tender-document', {\n    method: 'POST',\n    body: formData\n});\n\nconst result = await response.json();\nconsole.log(result.summary);\n```\n\n### 2. Search Summaries\n\n```javascript\nconst response = await fetch('/api/files/public-summaries?search=road construction&workType=Roads');\nconst data = await response.json();\nconsole.log(data.summaries);\n```\n\n### 3. Get Processing Statistics\n\n```javascript\nconst response = await fetch('/api/files/statistics');\nconst stats = await response.json();\nconsole.log(`Total summaries: ${stats.totalSummaries}`);\n```\n\n## Configuration Options\n\n### Document Processor Settings\n\n```javascript\n// In documentProcessor.js\nconst config = {\n    maxTextLength: 4000,          // Max text for AI processing\n    confidenceThreshold: 60,       // Minimum confidence score\n    maxRequirements: 10,           // Max requirements to extract\n    maxWorkDescriptions: 5,        // Max work descriptions\n    summaryLength: { min: 50, max: 150 }  // AI summary length\n};\n```\n\n### Processing Queue Settings\n\n```javascript\n// Queue configuration\nconst queueOptions = {\n    attempts: 3,                   // Retry failed jobs 3 times\n    backoff: {\n        type: 'exponential',\n        delay: 5000                // 5 second delay between retries\n    },\n    removeOnComplete: 10,          // Keep 10 completed jobs\n    removeOnFail: 50              // Keep 50 failed jobs\n};\n```\n\n## Monitoring and Debugging\n\n### 1. Check Processing Logs\n\n```bash\n# View application logs\ntail -f backend/logs/app.log\n\n# Check Redis queue status\nredis-cli monitor\n```\n\n### 2. MongoDB Queries\n\n```javascript\n// Get all summaries with low confidence\ndb.tendersummaries.find({\"summary.confidence\": {$lt: 60}});\n\n// Get statistics by category\ndb.tendersummaries.aggregate([\n    {$group: {_id: \"$category\", count: {$sum: 1}}},\n    {$sort: {count: -1}}\n]);\n```\n\n### 3. Error Handling\n\nCommon issues and solutions:\n\n- **File Upload Fails**: Check file size limits and supported formats\n- **Processing Timeout**: Increase queue timeout or use background processing\n- **Low Confidence Scores**: Review document quality and NLP patterns\n- **Missing Summaries**: Check MongoDB connection and model validation\n\n## Performance Considerations\n\n### 1. Scaling\n\n- Use background processing for large documents\n- Implement document caching for repeated access\n- Consider clustering for high-traffic scenarios\n\n### 2. Optimization\n\n- Pre-process documents to remove unnecessary content\n- Use text chunking for very large documents\n- Implement result caching for frequently accessed summaries\n\n### 3. Resource Management\n\n- Monitor memory usage during PDF processing\n- Set appropriate queue concurrency limits\n- Implement cleanup for temporary files\n\n## Security Considerations\n\n1. **File Validation**: Strict file type and size checking\n2. **Input Sanitization**: Clean extracted text before storage\n3. **Access Control**: Verify uploader permissions\n4. **Data Privacy**: Hash sensitive information where appropriate\n5. **Rate Limiting**: Prevent abuse of upload endpoints\n\n## Future Enhancements\n\n### Planned Features\n\n1. **Multi-language Support**: Process documents in regional languages\n2. **OCR Integration**: Extract text from scanned PDF documents\n3. **Collaborative Editing**: Allow manual summary corrections\n4. **Automated Categorization**: ML-based project categorization\n5. **Integration with Blockchain**: Store summary hashes on-chain\n\n### Advanced AI Features\n\n1. **Custom Model Training**: Train domain-specific models\n2. **Entity Recognition**: Advanced NER for tender-specific entities\n3. **Sentiment Analysis**: Analyze document tone and complexity\n4. **Document Comparison**: Compare similar tenders automatically\n\n## Contributing\n\nWhen contributing to this feature:\n\n1. Follow the existing code style and patterns\n2. Add tests for new functionality\n3. Update documentation for API changes\n4. Consider backward compatibility\n5. Test with various document formats\n\n## License\n\nThis document processing feature is part of the TenderChain system and follows the same licensing terms as the main project.\n"
+# Document Processing and Summarization Feature
+
+## Overview
+
+This feature automatically processes tender documents uploaded by government officers and generates intelligent summaries for public transparency. It uses advanced NLP techniques and optional AI integration to extract key information and create readable summaries.
+
+## Architecture
+
+### Components
+
+1. **Document Processor Service** (`backend/services/documentProcessor.js`)
+   - Text extraction from PDF, Word, and text files
+   - NLP processing for entity extraction
+   - Rule-based and AI-powered summarization
+   - Confidence scoring
+
+2. **File Upload API** (`backend/routes/fileRoutes.js`)
+   - Document upload handling
+   - Background processing queue
+   - Summary retrieval endpoints
+   - Statistics and analytics
+
+3. **Database Model** (`backend/models/TenderSummary.js`)
+   - MongoDB schema for storing summaries
+   - Search and filtering capabilities
+   - Statistics and aggregation methods
+
+4. **Public Dashboard** (`frontend/examples/dashboardNormal.html`)
+   - Summary display with search and filters
+   - Statistics dashboard
+   - Modal views for detailed information
+
+5. **Upload Interface** (`frontend/examples/tender-document-upload.html`)
+   - Government officer document upload interface
+   - Drag-and-drop functionality
+   - Real-time processing feedback
+
+## Features
+
+### Document Processing
+
+- **Supported Formats**: PDF, Word (.doc, .docx), Plain text
+- **File Size Limit**: 10MB per document
+- **Processing Modes**: Immediate or background processing
+- **Duplicate Detection**: Prevents multiple summaries for the same tender
+
+### Information Extraction
+
+- **Basic Information**:
+  - Work type (Construction, Roads, Bridges, etc.)
+  - Location and places
+  - Estimated values and monetary amounts
+  - Timeline and dates
+  - Organizations involved
+
+- **Advanced Analysis**:
+  - Project scope identification
+  - Key requirements extraction
+  - Work description summarization
+  - Confidence scoring (0-100%)
+
+### Public Dashboard Features
+
+- **Search and Filtering**:
+  - Text search across summaries
+  - Filter by work type
+  - Filter by location
+  - Category-based filtering
+
+- **Statistics**:
+  - Total summaries count
+  - Most common project types
+  - Average confidence scores
+  - Category breakdowns
+
+- **Responsive Design**:
+  - Card-based layout
+  - Pagination support
+  - Modal popups for detailed views
+  - Mobile-friendly interface
+
+## Installation and Setup
+
+### 1. Install Dependencies
+
+```bash
+cd backend
+npm install pdf-parse natural compromise multer mammoth @huggingface/inference bull redis
+```
+
+### 2. Environment Configuration
+
+Add to your `.env` file:
+
+```env
+# AI/ML Configuration (optional)
+HUGGINGFACE_API_TOKEN=your_huggingface_api_token_here
+
+# Redis Configuration (for background processing)
+REDIS_URL=redis://localhost:6379
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# File Upload Configuration
+MAX_FILE_SIZE=10485760
+ALLOWED_FILE_TYPES=application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain
+```
+
+### 3. Start Required Services
+
+```bash
+# Start MongoDB
+sudo systemctl start mongodb
+
+# Start Redis (optional, for background processing)
+sudo systemctl start redis
+
+# Start the backend server
+cd backend
+npm start
+```
+
+### 4. Access the Interfaces
+
+- **Upload Interface**: `http://localhost:3000/tender-document-upload.html`
+- **Public Dashboard**: `http://localhost:3000/dashboardNormal.html` (Tender Summaries tab)
+- **API Endpoints**: `http://localhost:3001/api/files/`
+
+## API Endpoints
+
+### Upload Document
+```http
+POST /api/files/upload-tender-document
+```
+
+**Parameters**:
+- `document`: File (PDF/Word/Text)
+- `tenderId`: String
+- `tenderAddress`: String (blockchain address)
+- `uploaderAddress`: String (wallet address)
+- `processAsync`: Boolean (optional)
+
+### Get Public Summaries
+```http
+GET /api/files/public-summaries
+```
+
+**Query Parameters**:
+- `category`: Filter by category
+- `workType`: Filter by work type
+- `location`: Filter by location
+- `limit`: Number of results
+- `page`: Page number
+- `search`: Search query
+
+### Get Tender Summary
+```http
+GET /api/files/tender-summary/:tenderAddress
+```
+
+### Get Statistics
+```http
+GET /api/files/statistics
+```
+
+### Check Job Status
+```http
+GET /api/files/job-status/:jobId
+```
+
+## Usage Examples
+
+### 1. Upload a Tender Document
+
+```javascript
+const formData = new FormData();
+formData.append('document', fileInput.files[0]);
+formData.append('tenderId', 'TND001');
+formData.append('tenderAddress', '0x1234...abcd');
+formData.append('uploaderAddress', '0x5678...efgh');
+
+const response = await fetch('/api/files/upload-tender-document', {
+    method: 'POST',
+    body: formData
+});
+
+const result = await response.json();
+console.log(result.summary);
+```
+
+### 2. Search Summaries
+
+```javascript
+const response = await fetch('/api/files/public-summaries?search=road construction&workType=Roads');
+const data = await response.json();
+console.log(data.summaries);
+```
+
+### 3. Get Processing Statistics
+
+```javascript
+const response = await fetch('/api/files/statistics');
+const stats = await response.json();
+console.log(`Total summaries: ${stats.totalSummaries}`);
+```
+
+## Configuration Options
+
+### Document Processor Settings
+
+```javascript
+// In documentProcessor.js
+const config = {
+    maxTextLength: 4000,          // Max text for AI processing
+    confidenceThreshold: 60,       // Minimum confidence score
+    maxRequirements: 10,           // Max requirements to extract
+    maxWorkDescriptions: 5,        // Max work descriptions
+    summaryLength: { min: 50, max: 150 }  // AI summary length
+};
+```
+
+### Processing Queue Settings
+
+```javascript
+// Queue configuration
+const queueOptions = {
+    attempts: 3,                   // Retry failed jobs 3 times
+    backoff: {
+        type: 'exponential',
+        delay: 5000                // 5 second delay between retries
+    },
+    removeOnComplete: 10,          // Keep 10 completed jobs
+    removeOnFail: 50              // Keep 50 failed jobs
+};
+```
+
+## Monitoring and Debugging
+
+### 1. Check Processing Logs
+
+```bash
+# View application logs
+tail -f backend/logs/app.log
+
+# Check Redis queue status
+redis-cli monitor
+```
+
+### 2. MongoDB Queries
+
+```javascript
+// Get all summaries with low confidence
+db.tendersummaries.find({"summary.confidence": {$lt: 60}});
+
+// Get statistics by category
+db.tendersummaries.aggregate([
+    {$group: {_id: "$category", count: {$sum: 1}}},
+    {$sort: {count: -1}}
+]);
+```
+
+### 3. Error Handling
+
+Common issues and solutions:
+
+- **File Upload Fails**: Check file size limits and supported formats
+- **Processing Timeout**: Increase queue timeout or use background processing
+- **Low Confidence Scores**: Review document quality and NLP patterns
+- **Missing Summaries**: Check MongoDB connection and model validation
+
+## Performance Considerations
+
+### 1. Scaling
+
+- Use background processing for large documents
+- Implement document caching for repeated access
+- Consider clustering for high-traffic scenarios
+
+### 2. Optimization
+
+- Pre-process documents to remove unnecessary content
+- Use text chunking for very large documents
+- Implement result caching for frequently accessed summaries
+
+### 3. Resource Management
+
+- Monitor memory usage during PDF processing
+- Set appropriate queue concurrency limits
+- Implement cleanup for temporary files
+
+## Security Considerations
+
+1. **File Validation**: Strict file type and size checking
+2. **Input Sanitization**: Clean extracted text before storage
+3. **Access Control**: Verify uploader permissions
+4. **Data Privacy**: Hash sensitive information where appropriate
+5. **Rate Limiting**: Prevent abuse of upload endpoints
+
+## Future Enhancements
+
+### Planned Features
+
+1. **Multi-language Support**: Process documents in regional languages
+2. **OCR Integration**: Extract text from scanned PDF documents
+3. **Collaborative Editing**: Allow manual summary corrections
+4. **Automated Categorization**: ML-based project categorization
+5. **Integration with Blockchain**: Store summary hashes on-chain
+
+### Advanced AI Features
+
+1. **Custom Model Training**: Train domain-specific models
+2. **Entity Recognition**: Advanced NER for tender-specific entities
+3. **Sentiment Analysis**: Analyze document tone and complexity
+4. **Document Comparison**: Compare similar tenders automatically
+
+## Contributing
+
+When contributing to this feature:
+
+1. Follow the existing code style and patterns
+2. Add tests for new functionality
+3. Update documentation for API changes
+4. Consider backward compatibility
+5. Test with various document formats
+
+## License
+
+This document processing feature is part of the TenderChain system and follows the same licensing terms as the main project.
+"
