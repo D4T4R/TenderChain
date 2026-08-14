@@ -2,37 +2,75 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
+import "./access/TenderRoles.sol";
 
-contract ContractorRepo {
+contract ContractorRepo is TenderRoles {
     address[] contractors; //all contractors verified + unverified
     address[] verifiedContractors;
-    //address[] unverifiedContractors;
-    
+
     mapping (address=>bool) verifiedStatus; //false => unverified, true => verified
     mapping (address=>address) contratorToVerifier;
     mapping (address=>address) public walletAddressToNode;
+    mapping (address=>bool) public isRegisteredContractor;
 
-    function newContractor(address walletAddress, address nodeAddress) public returns (bool) {
+    event ContractorRegistered(address indexed wallet, address indexed node);
+    event ContractorVerified(address indexed contractor, address indexed verifier);
+
+    constructor(address admin) TenderRoles(admin) {}
+
+    function newContractor(address walletAddress, address nodeAddress)
+        public
+        onlyRole(REGISTRAR_ROLE)
+        returns (bool)
+    {
+        require(walletAddress != address(0), "ContractorRepo: zero wallet");
+        require(nodeAddress != address(0), "ContractorRepo: zero node");
+        require(!isRegisteredContractor[nodeAddress], "ContractorRepo: already registered");
+
         contractors.push(nodeAddress);
+        isRegisteredContractor[nodeAddress] = true;
         verifiedStatus[nodeAddress] = false;
-        mapWalletAddressToNode(walletAddress,nodeAddress);
+        _mapWalletAddressToNode(walletAddress, nodeAddress);
+
+        emit ContractorRegistered(walletAddress, nodeAddress);
         return true;
     }
 
-    function mapWalletAddressToNode(address walletAddress, address nodeAddress) public {
+    /**
+     * @dev Internal. Previously this was a public function, which allowed any
+     * address to repoint any wallet at any node contract - an identity
+     * hijacking vector. It is now reachable only via newContractor.
+     */
+    function _mapWalletAddressToNode(address walletAddress, address nodeAddress) internal {
         walletAddressToNode[walletAddress] = nodeAddress;
     }
 
-    function verifyContractor(address contractorAddress, address verifierAddress) public {
+    function getNodeAddress(address walletAddress) public view returns (address) {
+        return walletAddressToNode[walletAddress];
+    }
+
+    /**
+     * @dev The verifier is taken from msg.sender rather than a parameter, so a
+     * caller cannot attribute a verification to somebody else.
+     */
+    function verifyContractor(address contractorAddress)
+        public
+        onlyRole(VERIFIER_ROLE)
+    {
+        require(isRegisteredContractor[contractorAddress], "ContractorRepo: unknown contractor");
+        require(!verifiedStatus[contractorAddress], "ContractorRepo: already verified");
+
         verifiedContractors.push(contractorAddress);
         verifiedStatus[contractorAddress] = true;
-        contratorToVerifier[contractorAddress] = verifierAddress;
+        contratorToVerifier[contractorAddress] = msg.sender;
+
+        emit ContractorVerified(contractorAddress, msg.sender);
     }
 
     function getVerifiedContractorsCount() public view returns (uint256) {
         return verifiedContractors.length;
     }
-        
+
     function getVerifiedContractors() public view returns (address[] memory) {
         return verifiedContractors;
     }
@@ -52,13 +90,13 @@ contract ContractorRepo {
     function getVerificationStatus(address contractorAddress) public view returns (bool) {
         return verifiedStatus[contractorAddress];
     }
-    
+
     function getUnverifiedContractors(uint256 index) public view returns (address) {
         //loop at web3
-        if (index > contractors.length) revert();
+        require(index < contractors.length, "ContractorRepo: index out of bounds");
         if (!verifiedStatus[contractors[index]]) {
-            return contractors[index]; 
+            return contractors[index];
         }
-        revert();
+        revert("ContractorRepo: contractor already verified");
     }
 }

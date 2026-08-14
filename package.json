@@ -1,10 +1,11 @@
 {
   "dependencies": {
+    "@openzeppelin/contracts": "^4.9.6",
     "big-number": "^2.0.0",
-    "solc": "^0.8.16",
-    "truffle": "^5.5.28",
+    "ganache": "^7.9.2",
     "serve": "^14.2.5",
-    "ganache": "^7.9.2"
+    "solc": "^0.8.16",
+    "truffle": "^5.5.28"
   },
   "scripts": {
     "compile": "truffle compile",

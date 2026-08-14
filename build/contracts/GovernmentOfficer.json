@@ -9824,10 +9824,16 @@
       "links": {},
       "address": "0xdAA71FBBA28C946258DD3d5FcC9001401f72270F",
       "transactionHash": "0x508db7d28c0e92f6c82c03266b763d25831f1360a787986ce9344487045adef3"
+    },
+    "1786733992071": {
+      "events": {},
+      "links": {},
+      "address": "0x59d3631c86BbE35EF041872d502F218A39FBa150",
+      "transactionHash": "0x67267e754f54c4f10a67e8550bea366276c07f10552c94c32eaba268a3aff95c"
     }
   },
   "schemaVersion": "3.4.9",
-  "updatedAt": "2025-08-19T10:17:23.132Z",
+  "updatedAt": "2026-08-14T19:00:04.874Z",
   "networkType": "ethereum",
   "devdoc": {
     "kind": "dev",
