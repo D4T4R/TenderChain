@@ -190,5 +190,24 @@ This project is developed for educational and demonstration purposes.
 
 > **Warning**
 > Do not deploy this system to a public network or use it with real funds.
-> Smart contract access control is still being implemented and the backend API
-> has no authentication layer yet.
+> Smart contract access control has been added but is unaudited, and most
+> backend domain routes are still stubs.
+
+### Authentication
+
+The API uses [Sign-In With Ethereum](https://eips.ethereum.org/EIPS/eip-4361)
+rather than passwords: accounts are keyed by wallet address and every
+privileged action is already a signed transaction, so a password would add a
+stealable credential without adding authority.
+
+```
+POST /api/auth/nonce    { walletAddress }        -> single-use nonce
+POST /api/auth/verify   { message, signature }   -> access + refresh tokens
+POST /api/auth/refresh  { refreshToken }         -> rotated pair
+POST /api/auth/logout   { refreshToken }
+GET  /api/auth/me                                 (Bearer access token)
+```
+
+Access tokens are short-lived (15m default); revocation happens at the refresh
+layer, which is stateful and detects token reuse. Set a real `JWT_SECRET` -
+the server refuses to issue tokens with the example placeholder.

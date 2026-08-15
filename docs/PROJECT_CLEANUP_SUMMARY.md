@@ -139,8 +139,10 @@ or handle real funds in its current state. Known blockers:
 
 - **Smart contracts**: access control is being introduced; until that work is
   complete, registry and factory mutators are callable by any address.
-- **Backend**: most API routes are stubs. There is no authentication middleware
-  and no JWT verification, so protected functionality does not yet exist.
+- **Backend**: authentication now exists (Sign-In With Ethereum, EIP-4361, with
+  rotating refresh tokens and role middleware), but most domain routes -
+  tenders, contractors, officers, verifiers, public - are still health-check
+  stubs, so the API surface is incomplete.
 - **Tests**: no meaningful automated test coverage.
 
 See the repository README for current status.

@@ -9,6 +9,7 @@ const router = express.Router();
 const documentProcessor = require('../services/documentProcessor');
 const TenderSummary = require('../models/TenderSummary');
 const logger = require('../utils/logger');
+const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 
 // Create processing queue for background processing
 const documentQueue = new Queue('document processing', {
@@ -273,17 +274,16 @@ router.get('/statistics', async (req, res) => {
   }
 });
 
-// Delete summary (admin only - implement proper auth)
-router.delete('/summary/:summaryId', async (req, res) => {
+// Delete summary. Admin only.
+//
+// This previously accepted an `adminAddress` string in the request body and
+// checked only that it was non-empty, so any unauthenticated caller could
+// delete any summary. It now requires a valid access token belonging to an
+// admin.
+router.delete('/summary/:summaryId', requireAuth, requireRole('admin'), async (req, res) => {
   try {
     const { summaryId } = req.params;
-    const { adminAddress } = req.body;
-    
-    // TODO: Add proper admin authentication
-    if (!adminAddress) {
-      return res.status(401).json({ error: 'Admin authentication required' });
-    }
-    
+
     const summary = await TenderSummary.findById(summaryId);
     if (!summary) {
       return res.status(404).json({ error: 'Summary not found' });
@@ -361,3 +361,7 @@ documentQueue.on('failed', (job, err) => {
 });
 
 module.exports = router;
+// Exposed so the process can shut the Redis connection down. Requiring this
+// module opens one as a side effect, which otherwise keeps Node (and Jest)
+// alive after the work is done.
+module.exports.documentQueue = documentQueue;
