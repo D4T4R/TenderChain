@@ -58,6 +58,34 @@ const userSchema = new mongoose.Schema({
     minlength: 2,
     maxlength: 100
   },
+  /**
+   * bcrypt hash. Optional: an account created through SIWE has no password, and
+   * a password account may never link a wallet. Both are valid identities.
+   *
+   * select: false keeps it out of every query result unless explicitly asked
+   * for, so it cannot leak through a route that forgets to project it away.
+   */
+  passwordHash: {
+    type: String,
+    select: false,
+    default: null
+  },
+  passwordUpdatedAt: {
+    type: Date,
+    default: null
+  },
+  /** Consecutive failed password attempts; reset on success. */
+  failedLoginAttempts: {
+    type: Number,
+    default: 0,
+    select: false
+  },
+  /** Set when the account is temporarily locked after repeated failures. */
+  lockedUntil: {
+    type: Date,
+    default: null,
+    select: false
+  },
   isActive: {
     type: Boolean,
     default: true
@@ -105,6 +133,11 @@ const userSchema = new mongoose.Schema({
       delete ret.__v;
       // Request metadata is operational PII and has no business leaving the API.
       delete ret.metadata;
+      // Belt and braces: these are select:false, but a query that explicitly
+      // asks for them (login does) must still not serialise them to a client.
+      delete ret.passwordHash;
+      delete ret.failedLoginAttempts;
+      delete ret.lockedUntil;
       return ret;
     }
   },
@@ -164,6 +197,50 @@ userSchema.statics.findByWallet = async function(walletAddress) {
 // Static method to find active users by type
 userSchema.statics.findActiveByType = function(userType) {
   return this.find({ userType, isActive: true });
+};
+
+/**
+ * Loads a user by email including the credential fields, which are select:false
+ * by default. Only the login path should use this.
+ */
+userSchema.statics.findByEmailWithSecrets = function(email) {
+  return this.findOne({ email: String(email).toLowerCase().trim() }).select(
+    '+passwordHash +failedLoginAttempts +lockedUntil'
+  );
+};
+
+userSchema.methods.hasPassword = function() {
+  return Boolean(this.passwordHash);
+};
+
+userSchema.methods.isLocked = function() {
+  return Boolean(this.lockedUntil && this.lockedUntil.getTime() > Date.now());
+};
+
+/**
+ * Records a failed attempt, locking the account once the threshold is reached.
+ * The lock is time-boxed rather than permanent so a malicious third party
+ * cannot lock a victim out indefinitely by guessing at their address.
+ */
+userSchema.methods.registerFailedLogin = function() {
+  const max = Number(process.env.LOGIN_MAX_ATTEMPTS || 5);
+  const lockMinutes = Number(process.env.LOGIN_LOCK_MINUTES || 15);
+
+  this.failedLoginAttempts = (this.failedLoginAttempts || 0) + 1;
+
+  if (this.failedLoginAttempts >= max) {
+    this.lockedUntil = new Date(Date.now() + lockMinutes * 60 * 1000);
+    this.failedLoginAttempts = 0;
+  }
+
+  return this.save();
+};
+
+userSchema.methods.clearLoginFailures = function() {
+  if (!this.failedLoginAttempts && !this.lockedUntil) return Promise.resolve(this);
+  this.failedLoginAttempts = 0;
+  this.lockedUntil = null;
+  return this.save();
 };
 
 // Pre-save middleware

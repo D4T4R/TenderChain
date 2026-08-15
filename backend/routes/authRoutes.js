@@ -1,10 +1,14 @@
+const crypto = require('crypto');
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 
 const User = require('../models/User');
 const LinkedWallet = require('../models/LinkedWallet');
+const PasswordResetToken = require('../models/PasswordResetToken');
 const siwe = require('../services/siweService');
 const tokens = require('../services/tokenService');
+const passwords = require('../services/passwordService');
+const mail = require('../services/mailService');
 const { requireAuth, loadUser } = require('../middleware/authMiddleware');
 const { HttpError } = require('../middleware/errorMiddleware');
 const logger = require('../utils/logger');
@@ -12,14 +16,31 @@ const logger = require('../utils/logger');
 const router = express.Router();
 
 /**
- * Wallet authentication via Sign-In With Ethereum (EIP-4361).
+ * Authentication. Two entry paths, both issuing the same session type.
  *
- *   POST /api/auth/nonce    request a single-use nonce
- *   POST /api/auth/verify   exchange a signed message for tokens
- *   POST /api/auth/refresh  rotate the refresh token
- *   POST /api/auth/logout   revoke the presented refresh token
- *   GET  /api/auth/me       current user
+ * Password (no wallet needed - read, reports, profile):
+ *   POST /api/auth/register         create an account with a password
+ *   POST /api/auth/login            email + password
+ *   POST /api/auth/change-password  authenticated, requires current password
+ *   POST /api/auth/forgot-password  request a reset link
+ *   POST /api/auth/reset-password   consume a reset token
+ *
+ * Wallet (Sign-In With Ethereum, EIP-4361 - also grants on-chain capability):
+ *   POST /api/auth/nonce            request a single-use nonce
+ *   POST /api/auth/verify           exchange a signed message for tokens
+ *
+ * Shared:
+ *   POST /api/auth/refresh          rotate the refresh token
+ *   POST /api/auth/logout           revoke the presented refresh token
+ *   GET  /api/auth/me               current user
+ *
+ * A password session carries no wallet claim, so on-chain actions are refused
+ * with reason 'wallet_required' until the session is stepped up (2c).
  */
+
+const RESET_TOKEN_TTL_MINUTES = Number(
+  process.env.PASSWORD_RESET_TTL_MINUTES || 30
+);
 
 // Tighter limits than the global API limiter: these endpoints are the
 // brute-force surface.
@@ -40,6 +61,307 @@ function requestContext(req) {
 
 const asyncHandler = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
+
+function hashResetToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+/**
+ * Register with a password. No wallet involved.
+ */
+router.post(
+  '/register',
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const { email, password, phoneNumber, fullName, userType } = req.body || {};
+
+    if (!email || !phoneNumber || !fullName) {
+      throw new HttpError(400, 'email, phoneNumber and fullName are required');
+    }
+
+    passwords.assertPolicy(password, { email, fullName });
+
+    const normalisedEmail = String(email).toLowerCase().trim();
+
+    // Privileged roles are never self-assignable at registration. An admin
+    // promotes an account afterwards, and on-chain authority is separate again.
+    const SELF_ASSIGNABLE = new Set(['contractor', 'public_verifier']);
+    const requestedType = userType || 'contractor';
+    if (!SELF_ASSIGNABLE.has(requestedType)) {
+      throw new HttpError(
+        403,
+        `Cannot self-assign the '${requestedType}' role; an administrator must grant it`
+      );
+    }
+
+    const passwordHash = await passwords.hash(password);
+
+    let user;
+    try {
+      user = await User.create({
+        userType: requestedType,
+        email: normalisedEmail,
+        phoneNumber,
+        fullName,
+        passwordHash,
+        passwordUpdatedAt: new Date(),
+        metadata: {
+          ipAddress: req.ip,
+          userAgent: req.get('user-agent'),
+          registrationSource: 'password',
+        },
+      });
+    } catch (error) {
+      // The unique index on email surfaces as 11000. Answer the same way as a
+      // success would look to a scraper is not possible here (the caller needs
+      // to know), so return a 409 and rely on the rate limiter.
+      if (error.code === 11000) {
+        throw new HttpError(409, 'An account with that email already exists');
+      }
+      throw error;
+    }
+
+    // No wallet: this session cannot transact until it is stepped up.
+    const pair = await tokens.issueTokenPair(user, requestContext(req));
+    await user.updateLastLogin();
+
+    logger.info(`New user registered with password: ${normalisedEmail}`);
+
+    res.status(201).json({
+      success: true,
+      created: true,
+      user: user.toJSON(),
+      wallets: [],
+      ...pair,
+    });
+  })
+);
+
+/**
+ * Password login.
+ *
+ * Every failure returns the same message and spends the same bcrypt work,
+ * whether the account is missing, has no password, or the password is wrong.
+ * Anything else is an account-enumeration oracle.
+ */
+router.post(
+  '/login',
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const { email, password } = req.body || {};
+
+    if (!email || !password) {
+      throw new HttpError(400, 'email and password are required');
+    }
+
+    const user = await User.findByEmailWithSecrets(email);
+
+    // Runs bcrypt against a dummy hash when there is no user or no password,
+    // so the response time does not reveal which.
+    const ok = await passwords.verify(password, user?.passwordHash);
+
+    const GENERIC = 'Invalid email or password';
+
+    if (!user || !ok) {
+      if (user) await user.registerFailedLogin();
+      throw new HttpError(401, GENERIC);
+    }
+
+    if (user.isLocked()) {
+      // Distinct message: the credentials were right, so this leaks nothing a
+      // successful login would not, and the user needs to know to wait.
+      throw new HttpError(
+        423,
+        'Account is temporarily locked after repeated failed attempts. Try again later.'
+      );
+    }
+
+    if (!user.isActive) {
+      throw new HttpError(403, 'Account is not active');
+    }
+
+    await user.clearLoginFailures();
+
+    const pair = await tokens.issueTokenPair(user, requestContext(req));
+    await user.updateLastLogin();
+
+    const wallets = await LinkedWallet.findActiveForUser(user._id);
+
+    res.json({
+      success: true,
+      user: user.toJSON(),
+      wallets: wallets.map((w) => ({
+        address: w.address,
+        isPrimary: w.isPrimary,
+        label: w.label,
+      })),
+      ...pair,
+    });
+  })
+);
+
+/**
+ * Change password while signed in. Requires the current one, so a stolen access
+ * token alone cannot lock the owner out of their account.
+ */
+router.post(
+  '/change-password',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = req.body || {};
+
+    const user = await User.findById(req.auth.userId).select(
+      '+passwordHash +failedLoginAttempts +lockedUntil'
+    );
+    if (!user) throw new HttpError(401, 'User no longer exists');
+
+    if (user.hasPassword()) {
+      const ok = await passwords.verify(currentPassword, user.passwordHash);
+      if (!ok) throw new HttpError(401, 'Current password is incorrect');
+    }
+    // A SIWE-only account has no current password to prove; being signed in
+    // with a proven wallet is the credential in that case.
+
+    passwords.assertPolicy(newPassword, {
+      email: user.email,
+      fullName: user.fullName,
+    });
+
+    user.passwordHash = await passwords.hash(newPassword);
+    user.passwordUpdatedAt = new Date();
+    await user.save();
+
+    // Changing a credential ends every other session; otherwise a thief keeps
+    // their stolen session alive for the full refresh window.
+    const revoked = await tokens.revokeAllForUser(user._id);
+    const pair = await tokens.issueTokenPair(user, requestContext(req));
+
+    res.json({ success: true, revokedSessions: revoked, ...pair });
+  })
+);
+
+/**
+ * Request a reset link.
+ *
+ * Always responds 202 with the same body, whether or not the address exists.
+ * Confirming which emails have accounts is exactly the leak a login form is
+ * usually careful to avoid.
+ */
+router.post(
+  '/forgot-password',
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const { email } = req.body || {};
+    const ACCEPTED = {
+      success: true,
+      message:
+        'If an account exists for that address, a reset link has been sent.',
+    };
+
+    if (!email) throw new HttpError(400, 'email is required');
+
+    const user = await User.findOne({
+      email: String(email).toLowerCase().trim(),
+    });
+
+    if (!user || !user.isActive) return res.status(202).json(ACCEPTED);
+
+    // Invalidate any outstanding tokens so only the newest link works.
+    await PasswordResetToken.updateMany(
+      { user: user._id, usedAt: null },
+      { $set: { usedAt: new Date() } }
+    );
+
+    const token = crypto.randomBytes(32).toString('base64url');
+
+    await PasswordResetToken.create({
+      tokenHash: hashResetToken(token),
+      user: user._id,
+      expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MINUTES * 60 * 1000),
+      requestedByIp: req.ip,
+    });
+
+    const base = process.env.FRONTEND_BASE_URL || 'http://localhost:3002';
+    const resetUrl = `${base}/reset-password?token=${token}`;
+
+    /**
+     * Deliberately not awaited.
+     *
+     * Awaiting the send makes the response time depend on whether the account
+     * exists: a real address pays the full SMTP handshake (measured at ~2100ms
+     * against a failing server) while an unknown one returns in ~1ms. That is a
+     * far louder enumeration oracle than the response body ever was, and it
+     * also lets an attacker tie up server time by spraying addresses.
+     *
+     * Delivery failures are logged, never surfaced.
+     */
+    void mail
+      .sendPasswordReset({
+        to: user.email,
+        resetUrl,
+        expiresInMinutes: RESET_TOKEN_TTL_MINUTES,
+      })
+      .catch((error) => {
+        logger.error(`Failed to send password reset to ${user.email}:`, error);
+      });
+
+    return res.status(202).json(ACCEPTED);
+  })
+);
+
+/**
+ * Consume a reset token and set a new password.
+ */
+router.post(
+  '/reset-password',
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const { token, newPassword } = req.body || {};
+    if (!token) throw new HttpError(400, 'token is required');
+
+    // Atomic consume: two concurrent submissions of the same link cannot both
+    // succeed.
+    const record = await PasswordResetToken.findOneAndUpdate(
+      {
+        tokenHash: hashResetToken(token),
+        usedAt: null,
+        expiresAt: { $gt: new Date() },
+      },
+      { $set: { usedAt: new Date() } },
+      { new: true }
+    );
+
+    if (!record) {
+      throw new HttpError(400, 'Reset link is invalid, already used, or expired');
+    }
+
+    const user = await User.findById(record.user).select(
+      '+passwordHash +failedLoginAttempts +lockedUntil'
+    );
+    if (!user) throw new HttpError(400, 'Reset link is no longer valid');
+
+    passwords.assertPolicy(newPassword, {
+      email: user.email,
+      fullName: user.fullName,
+    });
+
+    user.passwordHash = await passwords.hash(newPassword);
+    user.passwordUpdatedAt = new Date();
+    // A successful reset clears a lockout: the legitimate owner has proven
+    // control of the mailbox, and leaving them locked out helps nobody.
+    user.failedLoginAttempts = 0;
+    user.lockedUntil = null;
+    await user.save();
+
+    const revoked = await tokens.revokeAllForUser(user._id);
+
+    res.json({
+      success: true,
+      revokedSessions: revoked,
+      message: 'Password updated. Please sign in again.',
+    });
+  })
+);
 
 router.get('/health', (req, res) => {
   res.json({ status: 'OK', service: 'auth' });
