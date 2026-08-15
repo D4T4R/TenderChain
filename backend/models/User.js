@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const validator = require('validator');
 
 const userSchema = new mongoose.Schema({
   walletAddress: {
@@ -30,9 +31,10 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
     trim: true,
     validate: {
-      validator: function(v) {
-        return /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(v);
-      },
+      // The previous hand-rolled regex capped the TLD at 2-3 characters, so it
+      // rejected .info, .email, .online and similar - including addresses that
+      // are perfectly valid for the government bodies this system is for.
+      validator: (v) => validator.isEmail(v),
       message: 'Invalid email format'
     }
   },

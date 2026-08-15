@@ -37,11 +37,33 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// CORS configuration
+// CORS configuration.
+//
+// The allowed origins are configurable because the frontend port has moved
+// before: this was pinned to :3000 while the Next.js app serves on :3002, so
+// every browser request failed preflight.
+const DEFAULT_DEV_ORIGINS = [
+  'http://localhost:3002',
+  'http://127.0.0.1:3002',
+];
+
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+if (allowedOrigins.length === 0) {
+  if (process.env.NODE_ENV === 'production') {
+    logger.error(
+      'CORS_ALLOWED_ORIGINS is not set. No browser origin will be allowed.'
+    );
+  } else {
+    allowedOrigins.push(...DEFAULT_DEV_ORIGINS);
+  }
+}
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://your-domain.com'] 
-    : ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  origin: allowedOrigins,
   credentials: true,
   optionsSuccessStatus: 200
 }));

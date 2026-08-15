@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { Card, StatCard, EmptyState, ErrorNotice, Spinner } from "@/components/ui";
+import { AuthGate } from "@/components/AuthGate";
 import { useContract } from "@/lib/web3/useContract";
-import { useWallet } from "@/lib/web3/WalletProvider";
 
 const STATUS_LABELS = ["Active on bid", "Bidding complete", "Contract deployed"];
 
@@ -14,7 +14,6 @@ interface TenderRow {
 }
 
 export default function OfficerDashboard() {
-  const { account } = useWallet();
   const tenderRepo = useContract("TenderRepo");
 
   const [tenders, setTenders] = useState<TenderRow[]>([]);
@@ -64,15 +63,7 @@ export default function OfficerDashboard() {
       title="Government Officer"
       subtitle="Publish tenders, track bidding and award contracts"
     >
-      {!account && (
-        <Card>
-          <EmptyState
-            title="Connect your wallet to continue"
-            description="Officer actions are signed transactions, so a connected MetaMask account is required."
-          />
-        </Card>
-      )}
-
+      <AuthGate roles={["government_officer", "admin"]}>
       <div className="grid gap-5 sm:grid-cols-3">
         <StatCard label="Total tenders" value={tenders.length} />
         <StatCard label="Open for bidding" value={active} />
@@ -131,6 +122,7 @@ export default function OfficerDashboard() {
           tenders from this dashboard.
         </p>
       </Card>
+      </AuthGate>
     </DashboardShell>
   );
 }

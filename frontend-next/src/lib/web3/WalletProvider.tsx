@@ -41,12 +41,31 @@ interface WalletState {
 const WalletContext = createContext<WalletState | null>(null);
 
 /**
- * MetaMask injects window.ethereum before page load and does not change it
- * afterwards, so there is nothing to subscribe to; the snapshot is read once on
- * hydration.
+ * window.ethereum is usually present before our scripts run, but not always:
+ * an extension can inject late and announce itself with `ethereum#initialized`.
+ * Subscribing to that (plus a short fallback poll) means a late injection is
+ * picked up instead of the UI being stuck on "install MetaMask".
  */
-function subscribeToEthereum() {
-  return () => {};
+function subscribeToEthereum(onChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+
+  window.addEventListener("ethereum#initialized", onChange);
+
+  // Fallback for wallets that inject without announcing. Bounded, so this is
+  // not a permanent timer.
+  let checks = 0;
+  const interval = window.setInterval(() => {
+    checks += 1;
+    if (window.ethereum || checks > 10) {
+      window.clearInterval(interval);
+      onChange();
+    }
+  }, 200);
+
+  return () => {
+    window.removeEventListener("ethereum#initialized", onChange);
+    window.clearInterval(interval);
+  };
 }
 
 export function WalletProvider({ children }: { children: ReactNode }) {

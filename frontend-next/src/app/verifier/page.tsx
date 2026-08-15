@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { Card, StatCard, EmptyState, ErrorNotice, Spinner } from "@/components/ui";
+import { AuthGate } from "@/components/AuthGate";
 import { useContract } from "@/lib/web3/useContract";
 import { useWallet } from "@/lib/web3/WalletProvider";
 
@@ -129,15 +130,7 @@ export default function VerifierDashboard() {
       title="Verifier"
       subtitle="Approve participants and attest to milestone completion"
     >
-      {!account && (
-        <Card>
-          <EmptyState
-            title="Connect your wallet to continue"
-            description="Verification is an on-chain transaction requiring VERIFIER_ROLE."
-          />
-        </Card>
-      )}
-
+      <AuthGate roles={["verifier", "admin"]}>
       {account && canVerify === false && (
         <ErrorNotice message="This account does not hold VERIFIER_ROLE. Verification buttons are disabled. The registry admin can grant the role." />
       )}
@@ -168,6 +161,7 @@ export default function VerifierDashboard() {
           renderList("officer", pendingOfficers)
         )}
       </Card>
+      </AuthGate>
     </DashboardShell>
   );
 }

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { formatEther } from "ethers";
 import { DashboardShell } from "@/components/DashboardShell";
 import { Card, StatCard, EmptyState, ErrorNotice, Spinner } from "@/components/ui";
+import { AuthGate } from "@/components/AuthGate";
 import { useContract } from "@/lib/web3/useContract";
 import { useWallet } from "@/lib/web3/WalletProvider";
 
@@ -66,15 +67,7 @@ export default function ContractorDashboard() {
       title="Contractor"
       subtitle="Browse open tenders and manage your stake"
     >
-      {!account && (
-        <Card>
-          <EmptyState
-            title="Connect your wallet to continue"
-            description="Your verification status and stake are keyed to your wallet address."
-          />
-        </Card>
-      )}
-
+      <AuthGate roles={["contractor", "admin"]}>
       <div className="grid gap-5 sm:grid-cols-3">
         <StatCard label="Open tenders" value={openTenders.length} />
         <StatCard
@@ -116,6 +109,7 @@ export default function ContractorDashboard() {
           </ul>
         )}
       </Card>
+      </AuthGate>
     </DashboardShell>
   );
 }
