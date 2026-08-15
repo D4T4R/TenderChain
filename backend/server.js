@@ -4,11 +4,10 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
-const mongoose = require('mongoose');
 require('dotenv').config();
 
 const logger = require('./utils/logger');
-const dbConnect = require('./config/database');
+const { connectDB, disconnectDB, redactUri } = require('./config/database');
 const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 
 // Import routes
@@ -23,9 +22,6 @@ const publicRoutes = require('./routes/publicRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-
-// Connect to MongoDB
-dbConnect();
 
 // Security middleware
 app.use(helmet());
@@ -89,34 +85,64 @@ app.use('/uploads', express.static('uploads'));
 app.use(notFound);
 app.use(errorHandler);
 
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  logger.info('SIGTERM received, shutting down gracefully');
-  try {
-    await mongoose.connection.close();
-    logger.info('MongoDB connection closed');
-  } catch (error) {
-    logger.error('Error closing MongoDB connection:', error);
-  }
-  process.exit(0);
-});
+let server;
 
-process.on('SIGINT', async () => {
-  logger.info('SIGINT received, shutting down gracefully');
-  try {
-    await mongoose.connection.close();
-    logger.info('MongoDB connection closed');
-  } catch (error) {
-    logger.error('Error closing MongoDB connection:', error);
-  }
-  process.exit(0);
-});
+/**
+ * Drains in-flight HTTP requests before closing the database, so a shutdown
+ * cannot strand a request mid-query. Previously the database was closed
+ * immediately while the HTTP server kept accepting connections.
+ */
+async function shutdown(signal) {
+  logger.info(`${signal} received, shutting down gracefully`);
 
-// Start server
-app.listen(PORT, () => {
-  logger.info(`🚀 TenderChain Backend Server running on port ${PORT}`);
-  logger.info(`📝 Environment: ${process.env.NODE_ENV}`);
-  logger.info(`🗄️ Database: ${process.env.MONGODB_URI}`);
-});
+  const forceExit = setTimeout(() => {
+    logger.error('Shutdown timed out after 10s, forcing exit');
+    process.exit(1);
+  }, 10000);
+  forceExit.unref();
+
+  try {
+    if (server) {
+      await new Promise((resolve, reject) => {
+        server.close((err) => (err ? reject(err) : resolve()));
+      });
+      logger.info('HTTP server closed');
+    }
+    await disconnectDB();
+    clearTimeout(forceExit);
+    process.exit(0);
+  } catch (error) {
+    logger.error('Error during shutdown:', error);
+    process.exit(1);
+  }
+}
+
+process.on('SIGTERM', () => void shutdown('SIGTERM'));
+process.on('SIGINT', () => void shutdown('SIGINT'));
+
+async function start() {
+  // Connect before listening so the server never accepts traffic it cannot serve.
+  await connectDB();
+
+  server = app.listen(PORT, () => {
+    logger.info(`🚀 TenderChain Backend Server running on port ${PORT}`);
+    logger.info(`📝 Environment: ${process.env.NODE_ENV}`);
+    // Redacted: the raw URI may embed credentials.
+    logger.info(`🗄️ Database: ${redactUri(process.env.MONGODB_URI)}`);
+  });
+
+  return server;
+}
+
+// Only auto-start when run directly, so tests can import the app without
+// opening a socket or requiring a live database.
+if (require.main === module) {
+  start().catch((error) => {
+    logger.error('Failed to start server:', error);
+    process.exit(1);
+  });
+}
 
 module.exports = app;
+module.exports.start = start;
+module.exports.shutdown = shutdown;

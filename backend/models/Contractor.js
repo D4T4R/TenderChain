@@ -10,9 +10,12 @@ const contractorSchema = new mongoose.Schema({
   walletAddress: {
     type: String,
     required: true,
+    // unique creates the index on its own. This field previously declared
+    // unique + index: true here AND an explicit schema.index() below, i.e.
+    // the same key was registered three times.
     unique: true,
     lowercase: true,
-    index: true
+    trim: true
   },
   
   // Company Information
@@ -217,16 +220,17 @@ const contractorSchema = new mongoose.Schema({
   }
 });
 
-// Indexes for efficient queries
-contractorSchema.index({ walletAddress: 1 });
-contractorSchema.index({ panNumber: 1 });
-contractorSchema.index({ gstNumber: 1 });
+// Indexes for efficient queries.
+// walletAddress, panNumber, gstNumber and registrationNumber are omitted here:
+// each is declared unique on its field, which already builds the index.
 contractorSchema.index({ companyName: 'text' });
 contractorSchema.index({ businessCategory: 1 });
 contractorSchema.index({ 'address.state': 1, 'address.city': 1 });
 contractorSchema.index({ 'performance.averageRating': -1 });
 contractorSchema.index({ 'financialInfo.annualTurnover': -1 });
 contractorSchema.index({ createdAt: -1 });
+// Directory browsing: filter by category, rank by rating.
+contractorSchema.index({ businessCategory: 1, 'performance.averageRating': -1 });
 
 // Virtual for success rate
 contractorSchema.virtual('successRate').get(function() {

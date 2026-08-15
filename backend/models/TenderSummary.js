@@ -50,11 +50,18 @@ const tenderSummarySchema = new mongoose.Schema({
   tenderAddress: {
     type: String,
     required: true,
-    index: true
+    lowercase: true,
+    trim: true,
+    // Unique: one summary per tender. fileRoutes previously relied on a
+    // read-then-write check (findByTender, then create), which two concurrent
+    // uploads can both pass. The constraint belongs in the database.
+    // The index also serves the { tenderAddress, tenderId } compound prefix.
+    unique: true
   },
   tenderId: {
     type: String,
     required: true,
+    trim: true,
     index: true
   },
   
@@ -165,14 +172,21 @@ const tenderSummarySchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Indexes for efficient querying
-tenderSummarySchema.index({ tenderAddress: 1, tenderId: 1 });
+// Indexes for efficient querying.
+// tenderAddress is omitted: its unique constraint already builds that index.
 tenderSummarySchema.index({ 'summary.workType': 1 });
 tenderSummarySchema.index({ 'summary.location': 1 });
 tenderSummarySchema.index({ category: 1 });
 tenderSummarySchema.index({ processedAt: -1 });
-tenderSummarySchema.index({ isPublic: 1, status: 1 });
 tenderSummarySchema.index({ searchKeywords: 1 });
+
+// findPublicSummaries filters on { isPublic, status } and sorts by processedAt.
+// Including the sort key lets the index satisfy the ordering too, instead of
+// forcing an in-memory sort of the whole result set.
+tenderSummarySchema.index({ isPublic: 1, status: 1, processedAt: -1 });
+// Public dashboard facets.
+tenderSummarySchema.index({ isPublic: 1, status: 1, category: 1 });
+tenderSummarySchema.index({ isPublic: 1, status: 1, 'summary.workType': 1 });
 
 // Text index for full-text search
 tenderSummarySchema.index({
