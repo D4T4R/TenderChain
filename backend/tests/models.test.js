@@ -3,8 +3,10 @@ const { connectDB, disconnectDB } = require('../config/database');
 const User = require('../models/User');
 const TenderSummary = require('../models/TenderSummary');
 const Contractor = require('../models/Contractor');
+const LinkedWallet = require('../models/LinkedWallet');
 
 const migration = require('../migrations/20260815000000-initial-indexes');
+const walletMigration = require('../migrations/20260815020000-decouple-wallet-from-user');
 
 const ADDR_A = '0xaaaabbbbccccddddeeeeffff0000111122223333';
 
@@ -43,8 +45,9 @@ function summaryFixture(overrides = {}) {
 describe('models', () => {
   beforeAll(async () => {
     await connectDB();
-    // Apply the index migration so the tests exercise the real index set.
+    // Apply the index migrations so the tests exercise the real index set.
     await migration.up(mongoose.connection.db);
+    await walletMigration.up(mongoose.connection.db);
   }, 60000);
 
   afterAll(async () => {
@@ -61,6 +64,7 @@ describe('models', () => {
       ['User', User],
       ['Contractor', Contractor],
       ['TenderSummary', TenderSummary],
+      ['LinkedWallet', LinkedWallet],
     ])('%s declares no duplicate index keys', (_name, Model) => {
       // schema.indexes() is the authoritative list Mongoose will build, and it
       // already folds in field-level `unique`/`index`/`sparse` declarations.
@@ -81,6 +85,7 @@ describe('models', () => {
         [User, 'users'],
         [TenderSummary, 'tendersummaries'],
         [Contractor, 'contractors'],
+        [LinkedWallet, 'linkedwallets'],
       ]) {
         const declaredKeys = Model.schema.indexes().map(([key]) => key);
         const liveIndexes = await mongoose.connection.db
@@ -141,7 +146,6 @@ describe('models', () => {
   describe('User serialisation', () => {
     it('hides request metadata and exposes the profileUrl virtual', () => {
       const user = new User({
-        walletAddress: `0x${'1'.repeat(40)}`,
         userType: 'admin',
         email: 'z@example.com',
         phoneNumber: '9876543210',
@@ -157,16 +161,28 @@ describe('models', () => {
       expect(typeof json.profileUrl).toBe('string');
     });
 
-    it('rejects a malformed wallet address', async () => {
+    it('rejects an invalid userType', async () => {
       await expect(
         User.create({
-          walletAddress: 'not-an-address',
-          userType: 'contractor',
+          userType: 'sudo',
           email: 'a@example.com',
           phoneNumber: '9876543210',
           fullName: 'AB',
         })
       ).rejects.toMatchObject({ name: 'ValidationError' });
+    });
+
+    it('creates a user with no wallet at all', async () => {
+      // The whole point of P2a: identity does not require a wallet.
+      const user = await User.create({
+        userType: 'public_verifier',
+        email: 'nowallet@example.com',
+        phoneNumber: '9876543211',
+        fullName: 'No Wallet',
+      });
+      expect(user._id).toBeDefined();
+      expect(user.userType).toBe('public_verifier');
+      await User.deleteOne({ _id: user._id });
     });
   });
 });

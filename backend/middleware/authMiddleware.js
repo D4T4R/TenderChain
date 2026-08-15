@@ -33,8 +33,11 @@ function requireAuth(req, res, next) {
     const payload = verifyAccessToken(token);
     req.auth = {
       userId: payload.sub,
-      walletAddress: payload.wallet,
+      // Null for a password-only session; a session is not required to have a
+      // wallet bound to it.
+      walletAddress: payload.wallet || null,
       role: payload.role,
+      hasWallet: Boolean(payload.wallet),
     };
     return next();
   } catch (error) {
@@ -114,6 +117,20 @@ function requireRole(...roles) {
 function requireOnChainRole(contractName, roleName) {
   return async (req, res, next) => {
     if (!req.auth) return next(new HttpError(401, 'Authentication required'));
+
+    // A session with no proven wallet cannot act on chain. This is a distinct
+    // condition from "wallet lacks the role", and the client needs to tell them
+    // apart: one is fixed by connecting and signing, the other by an admin
+    // granting the role.
+    if (!req.auth.walletAddress) {
+      return next(
+        new HttpError(
+          403,
+          'This action requires a proven wallet. Connect a wallet and sign in with it to continue.',
+          { reason: 'wallet_required' }
+        )
+      );
+    }
 
     try {
       // Required lazily so that routes not using this middleware do not force

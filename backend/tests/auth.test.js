@@ -6,6 +6,7 @@ const app = require('../server');
 const User = require('../models/User');
 const AuthNonce = require('../models/AuthNonce');
 const RefreshToken = require('../models/RefreshToken');
+const LinkedWallet = require('../models/LinkedWallet');
 const siwe = require('../services/siweService');
 const tokens = require('../services/tokenService');
 
@@ -52,6 +53,7 @@ describe('SIWE authentication', () => {
       User.deleteMany({}),
       AuthNonce.deleteMany({}),
       RefreshToken.deleteMany({}),
+      LinkedWallet.deleteMany({}),
     ]);
     await disconnectDB();
 
@@ -66,6 +68,7 @@ describe('SIWE authentication', () => {
       User.deleteMany({}),
       AuthNonce.deleteMany({}),
       RefreshToken.deleteMany({}),
+      LinkedWallet.deleteMany({}),
     ]);
   });
 
@@ -100,7 +103,12 @@ describe('SIWE authentication', () => {
       expect(res.body.created).toBe(true);
       expect(res.body.accessToken).toEqual(expect.any(String));
       expect(res.body.refreshToken).toEqual(expect.any(String));
-      expect(res.body.user.walletAddress).toBe(wallet.address.toLowerCase());
+      // walletAddress no longer lives on the user; wallets are listed separately.
+      expect(res.body.user.walletAddress).toBeUndefined();
+      expect(res.body.wallets.map((w) => w.address)).toContain(
+        wallet.address.toLowerCase()
+      );
+      expect(res.body.walletAddress).toBe(wallet.address.toLowerCase());
     });
 
     it('signs an existing user in without recreating them', async () => {
@@ -235,7 +243,7 @@ describe('SIWE authentication', () => {
         .set('Authorization', `Bearer ${body.accessToken}`)
         .expect(200);
 
-      expect(me.body.user.walletAddress).toBe(wallet.address.toLowerCase());
+      expect(me.body.user._id).toBe(body.user._id);
     });
 
     it('rejects a protected route without a token', async () => {
@@ -393,10 +401,8 @@ describe('SIWE authentication', () => {
 
     it('allows the admin user list for an admin', async () => {
       const { body } = await authenticate();
-      await User.updateOne(
-        { walletAddress: wallet.address.toLowerCase() },
-        { $set: { userType: 'admin' } }
-      );
+      const admin = await User.findByWallet(wallet.address);
+      await User.updateOne({ _id: admin._id }, { $set: { userType: 'admin' } });
 
       // Existing token still carries the old role, so re-authenticate.
       const refreshed = await request(app)
@@ -430,7 +436,9 @@ describe('SIWE authentication', () => {
       expect(user.fullName).toBe('Renamed');
       expect(user.userType).toBe('contractor');
       expect(user.kycStatus).toBe('pending');
-      expect(user.walletAddress).toBe(wallet.address.toLowerCase());
+      // The wallet link is untouched by a profile edit.
+      const link = await LinkedWallet.findActiveByAddress(wallet.address);
+      expect(link.user.toString()).toBe(user._id.toString());
     });
   });
 });

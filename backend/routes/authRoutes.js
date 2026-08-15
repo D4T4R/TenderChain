@@ -2,6 +2,7 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 
 const User = require('../models/User');
+const LinkedWallet = require('../models/LinkedWallet');
 const siwe = require('../services/siweService');
 const tokens = require('../services/tokenService');
 const { requireAuth, loadUser } = require('../middleware/authMiddleware');
@@ -72,6 +73,7 @@ router.post(
 
     const walletAddress = await siwe.verifySignature({ message, signature });
 
+    // Resolves through LinkedWallet, so an account can hold several wallets.
     let user = await User.findByWallet(walletAddress);
     let created = false;
 
@@ -84,7 +86,6 @@ router.post(
       }
 
       user = await User.create({
-        walletAddress,
         userType: profile.userType || 'contractor',
         email: profile.email,
         phoneNumber: profile.phoneNumber,
@@ -103,13 +104,27 @@ router.post(
       throw new HttpError(403, 'Account is not active');
     }
 
-    const pair = await tokens.issueTokenPair(user, requestContext(req));
+    // Record the proof. Refreshes lastProvenAt on an existing link, which is
+    // what step-up freshness will be measured against.
+    await LinkedWallet.recordProof(user._id, walletAddress);
+
+    // Signing in with a wallet binds it to the session, so this session can act
+    // on chain without a separate step-up.
+    const pair = await tokens.issueTokenPair(user, requestContext(req), {
+      walletAddress,
+    });
     await user.updateLastLogin();
 
     res.status(created ? 201 : 200).json({
       success: true,
       created,
       user: user.toJSON(),
+      wallets: (await LinkedWallet.findActiveForUser(user._id)).map((w) => ({
+        address: w.address,
+        isPrimary: w.isPrimary,
+        label: w.label,
+        provenAt: w.provenAt,
+      })),
       ...pair,
     });
   })

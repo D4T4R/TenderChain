@@ -1,26 +1,29 @@
 const mongoose = require('mongoose');
 const validator = require('validator');
 
+/**
+ * A user identity.
+ *
+ * Note there is deliberately no walletAddress field. Identity is decoupled from
+ * the wallet: a user may hold zero wallets and still sign in, read reports and
+ * manage their profile. Proven wallets live in the LinkedWallet collection, and
+ * only on-chain actions require one. Previously walletAddress was required and
+ * unique here, which made an account impossible without a wallet.
+ */
 const userSchema = new mongoose.Schema({
-  walletAddress: {
-    type: String,
-    required: true,
-    // unique already creates the index; adding index: true as well made
-    // Mongoose 7 emit a duplicate schema index warning.
-    unique: true,
-    lowercase: true,
-    trim: true,
-    validate: {
-      validator: function(v) {
-        return /^0x[a-fA-F0-9]{40}$/.test(v);
-      },
-      message: 'Invalid Ethereum wallet address format'
-    }
-  },
   userType: {
     type: String,
     required: true,
-    enum: ['contractor', 'government_officer', 'verifier', 'admin']
+    enum: [
+      'contractor',
+      'government_officer',
+      // Official verifier: authorised, holds VERIFIER_ROLE on the registries.
+      'verifier',
+      // General-population verifier: not authorised but bonded, participates in
+      // PublicClaims, which is stake-gated rather than role-gated.
+      'public_verifier',
+      'admin',
+    ]
     // No standalone index: the { userType, isActive } compound index below has
     // userType as its prefix, so it already serves userType-only queries.
   },
@@ -126,24 +129,36 @@ userSchema.methods.updateLastLogin = function() {
   return this.save();
 };
 
-// Method to calculate profile completeness
+// Method to calculate profile completeness.
+// walletAddress is no longer part of this: a user without a wallet is a valid,
+// fully usable account, so counting it would permanently cap them at 80%.
 userSchema.methods.calculateProfileCompleteness = function() {
   let completeness = 0;
-  const requiredFields = ['walletAddress', 'email', 'phoneNumber', 'fullName'];
-  
+  const requiredFields = ['email', 'phoneNumber', 'fullName'];
+
   requiredFields.forEach(field => {
-    if (this[field]) completeness += 20;
+    if (this[field]) completeness += 25;
   });
-  
-  if (this.kycStatus === 'approved') completeness += 20;
-  
+
+  if (this.kycStatus === 'approved') completeness += 25;
+
   this.profileCompleteness = completeness;
   return completeness;
 };
 
-// Static method to find by wallet address
-userSchema.statics.findByWallet = function(walletAddress) {
-  return this.findOne({ walletAddress: walletAddress.toLowerCase() });
+/**
+ * Resolve a user from a proven wallet address.
+ *
+ * Goes through LinkedWallet rather than a field on this document, so an account
+ * can hold several wallets and a wallet can be rotated without touching the
+ * identity.
+ */
+userSchema.statics.findByWallet = async function(walletAddress) {
+  // Required lazily to avoid a circular import: LinkedWallet references User.
+  const LinkedWallet = require('./LinkedWallet');
+  const link = await LinkedWallet.findActiveByAddress(walletAddress);
+  if (!link) return null;
+  return this.findById(link.user);
 };
 
 // Static method to find active users by type

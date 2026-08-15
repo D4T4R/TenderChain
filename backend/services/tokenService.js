@@ -53,12 +53,20 @@ function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
-function signAccessToken(user) {
+/**
+ * Signs an access token.
+ *
+ * The wallet is a property of the session, not of the user: it is present only
+ * when this session was established by (or stepped up with) a proven wallet.
+ * A password-only session legitimately has none, and on-chain checks must
+ * refuse rather than assume one.
+ */
+function signAccessToken(user, { walletAddress = null } = {}) {
   return jwt.sign(
     {
       sub: user._id.toString(),
-      wallet: user.walletAddress,
       role: user.userType,
+      ...(walletAddress ? { wallet: walletAddress.toLowerCase() } : {}),
     },
     getSecret(),
     {
@@ -86,13 +94,15 @@ function refreshExpiryDate() {
 /**
  * Issues a new refresh token, optionally continuing an existing family.
  */
-async function issueRefreshToken(user, { family, context = {} } = {}) {
+async function issueRefreshToken(user, { family, context = {}, walletAddress = null } = {}) {
   const token = crypto.randomBytes(48).toString('base64url');
 
   await RefreshToken.create({
     tokenHash: hashToken(token),
     user: user._id,
-    walletAddress: user.walletAddress,
+    // Records which wallet, if any, established this session. Null for a
+    // password-only sign-in.
+    walletAddress: walletAddress ? walletAddress.toLowerCase() : null,
     family: family || crypto.randomUUID(),
     expiresAt: refreshExpiryDate(),
     userAgent: context.userAgent,
@@ -102,13 +112,13 @@ async function issueRefreshToken(user, { family, context = {} } = {}) {
   return token;
 }
 
-async function issueTokenPair(user, context) {
+async function issueTokenPair(user, context, { walletAddress = null } = {}) {
   const [accessToken, refreshToken] = await Promise.all([
-    Promise.resolve(signAccessToken(user)),
-    issueRefreshToken(user, { context }),
+    Promise.resolve(signAccessToken(user, { walletAddress })),
+    issueRefreshToken(user, { context, walletAddress }),
   ]);
 
-  return { accessToken, refreshToken, expiresIn: ACCESS_TOKEN_TTL };
+  return { accessToken, refreshToken, expiresIn: ACCESS_TOKEN_TTL, walletAddress };
 }
 
 /**
@@ -170,9 +180,12 @@ async function rotateRefreshToken(presentedToken, context = {}) {
     throw new TokenError('Account is not active');
   }
 
+  // Rotation preserves the wallet binding: refreshing must not silently grant
+  // or drop the session's ability to act on chain.
   const nextToken = await issueRefreshToken(record.user, {
     family: record.family,
     context,
+    walletAddress: record.walletAddress,
   });
 
   record.replacedByHash = hashToken(nextToken);
@@ -180,10 +193,13 @@ async function rotateRefreshToken(presentedToken, context = {}) {
   await record.save();
 
   return {
-    accessToken: signAccessToken(record.user),
+    accessToken: signAccessToken(record.user, {
+      walletAddress: record.walletAddress,
+    }),
     refreshToken: nextToken,
     expiresIn: ACCESS_TOKEN_TTL,
     user: record.user,
+    walletAddress: record.walletAddress,
   };
 }
 

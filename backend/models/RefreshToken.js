@@ -20,9 +20,11 @@ const refreshTokenSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
+    // Optional: null for a password-only session, set when the session was
+    // established by or stepped up with a proven wallet.
     walletAddress: {
       type: String,
-      required: true,
+      default: null,
       lowercase: true,
       trim: true,
     },
