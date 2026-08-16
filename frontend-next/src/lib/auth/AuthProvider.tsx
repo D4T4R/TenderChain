@@ -13,6 +13,7 @@ import { SiweMessage } from "siwe";
 import { api, ApiError, setAuthLostHandler } from "@/lib/api/client";
 import type {
   AuthUser,
+  Capability,
   LinkedWallet,
   RegisterPayload,
   SignUpProfile,
@@ -50,6 +51,12 @@ interface AuthState {
   wallets: LinkedWallet[];
   /** The wallet bound to the current session, if any. */
   sessionWallet: string | null;
+  /** What this session is currently allowed to do. */
+  capabilities: Capability[];
+  /** True once a wallet has been proven recently enough to transact. */
+  canTransact: boolean;
+  /** Set while a step-up signature is pending. */
+  isSteppingUp: boolean;
   error: string | null;
   /** Sign in by proving control of the connected wallet. */
   signIn: (profile?: SignUpProfile) => Promise<void>;
@@ -57,6 +64,13 @@ interface AuthState {
   signInWithPassword: (email: string, password: string) => Promise<void>;
   /** Create an account with a password; no wallet required. */
   register: (payload: RegisterPayload) => Promise<void>;
+  /**
+   * Prove a wallet against the current session to gain write:onchain.
+   * Resolves true on success. The session itself is preserved.
+   */
+  stepUp: () => Promise<boolean>;
+  /** Re-reads capabilities from the server, e.g. after they decay. */
+  refreshCapabilities: () => Promise<void>;
   signOut: () => Promise<void>;
   clearError: () => void;
 }
@@ -71,6 +85,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [wallets, setWallets] = useState<LinkedWallet[]>([]);
   const [sessionWallet, setSessionWallet] = useState<string | null>(null);
+  const [capabilities, setCapabilities] = useState<Capability[]>([]);
+  const [isSteppingUp, setIsSteppingUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const reset = useCallback(() => {
@@ -78,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setWallets([]);
     setSessionWallet(null);
+    setCapabilities([]);
     setStatus("signedOut");
     setIsRegistering(false);
   }, []);
@@ -99,9 +116,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const { user: me } = await api.me();
+        const me = await api.me();
         if (cancelled) return;
-        setUser(me);
+        setUser(me.user);
+        setCapabilities(me.capabilities ?? []);
+        setSessionWallet(me.walletAddress ?? null);
         setStatus("signedIn");
       } catch {
         if (cancelled) return;
@@ -168,6 +187,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(result.user);
         setWallets(result.wallets ?? []);
         setSessionWallet(result.walletAddress ?? account);
+        // A wallet sign-in is already wallet-proven, so it can transact.
+        setCapabilities(
+          result.capabilities ?? ["read", "write:offchain", "write:onchain"]
+        );
         setStatus("signedIn");
         setIsRegistering(false);
       } catch (err) {
@@ -219,6 +242,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: AuthUser;
       wallets?: LinkedWallet[];
       walletAddress?: string | null;
+      capabilities?: Capability[];
     }) => {
       tokenStore.setAccessToken(result.accessToken);
       tokenStore.setRefreshToken(result.refreshToken);
@@ -227,6 +251,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Null for a password session: it can read and manage the profile, but
       // cannot act on chain until a wallet is proven.
       setSessionWallet(result.walletAddress ?? null);
+      setCapabilities(
+        result.capabilities ??
+          (result.walletAddress
+            ? ["read", "write:offchain", "write:onchain"]
+            : ["read", "write:offchain"])
+      );
       setStatus("signedIn");
       setIsRegistering(false);
     },
@@ -266,6 +296,83 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [adoptSession, describeError]
   );
 
+  /**
+   * Re-reads capabilities from the server.
+   *
+   * Needed because write:onchain decays on a timer server-side; the client has
+   * no way to know it has lapsed until it asks or gets refused.
+   */
+  const refreshCapabilities = useCallback(async () => {
+    try {
+      const { session } = await api.session();
+      setCapabilities(session.capabilities);
+      setSessionWallet(session.walletAddress);
+    } catch {
+      // Non-fatal: the next protected call will refuse and prompt properly.
+    }
+  }, []);
+
+  /**
+   * Proves a wallet against the existing session to gain write:onchain.
+   *
+   * Distinct from signIn: identity is already established, so this upgrades in
+   * place rather than starting a new session.
+   */
+  const stepUp = useCallback(async (): Promise<boolean> => {
+    setError(null);
+
+    if (!signer || !account) {
+      setError("Connect a wallet first, then try again.");
+      return false;
+    }
+
+    setIsSteppingUp(true);
+    try {
+      const nonce = await api.getNonce(account);
+
+      const message = new SiweMessage({
+        domain: nonce.domain,
+        address: account,
+        statement: nonce.statement,
+        uri: nonce.uri,
+        version: "1",
+        chainId: nonce.chainId,
+        nonce: nonce.nonce,
+        issuedAt: new Date().toISOString(),
+      }).prepareMessage();
+
+      const signature = await signer.signMessage(message);
+      const result = await api.stepUp(message, signature);
+
+      // The session id is unchanged; only the token and capabilities move.
+      tokenStore.setAccessToken(result.accessToken);
+      setCapabilities(result.capabilities);
+      setSessionWallet(result.walletAddress);
+      setWallets((current) =>
+        current.some((w) => w.address === result.walletAddress)
+          ? current
+          : [...current, { address: result.walletAddress, isPrimary: false }]
+      );
+      return true;
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Could not verify your wallet";
+
+      setError(
+        /user rejected|denied|4001/i.test(message)
+          ? "Signature request was rejected in your wallet."
+          : message
+      );
+      return false;
+    } finally {
+      setIsSteppingUp(false);
+    }
+  }, [signer, account]);
+
   const signOut = useCallback(async () => {
     const refreshToken = tokenStore.getRefreshToken();
     if (refreshToken) {
@@ -282,10 +389,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       wallets,
       sessionWallet,
+      capabilities,
+      canTransact: capabilities.includes("write:onchain"),
+      isSteppingUp,
       error,
       signIn,
       signInWithPassword,
       register,
+      stepUp,
+      refreshCapabilities,
       signOut,
       clearError: () => setError(null),
     }),
@@ -295,10 +407,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       wallets,
       sessionWallet,
+      capabilities,
+      isSteppingUp,
       error,
       signIn,
       signInWithPassword,
       register,
+      stepUp,
+      refreshCapabilities,
       signOut,
     ]
   );
@@ -316,6 +432,12 @@ export function useAuth(): AuthState {
 export function useHasRole(...roles: AuthUser["userType"][]): boolean {
   const { user } = useAuth();
   return !!user && roles.includes(user.userType);
+}
+
+/** Does the current session hold this capability? */
+export function useCapability(capability: Capability): boolean {
+  const { capabilities } = useAuth();
+  return capabilities.includes(capability);
 }
 
 export { EXPECTED_CHAIN_ID };

@@ -11,6 +11,11 @@ const LinkedWallet = require('../models/LinkedWallet');
 const passwords = require('../services/passwordService');
 const mail = require('../services/mailService');
 
+// The duplicate-email check relies on the unique index from the initial
+// migration, so this suite has to apply it rather than assuming a database
+// somebody else already migrated.
+const baseIndexes = require('../migrations/20260815000000-initial-indexes');
+const walletMigration = require('../migrations/20260815020000-decouple-wallet-from-user');
 const migration = require('../migrations/20260815030000-password-credentials');
 
 const GOOD_PASSWORD = 'Correct-Horse-Battery-7';
@@ -32,6 +37,8 @@ async function registerUser(overrides = {}) {
 describe('password authentication', () => {
   beforeAll(async () => {
     await Promise.all([connectDB(), connectRedis()]);
+    await baseIndexes.up(mongoose.connection.db);
+    await walletMigration.up(mongoose.connection.db);
     await migration.up(mongoose.connection.db);
   }, 60000);
 

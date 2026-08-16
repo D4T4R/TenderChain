@@ -151,6 +151,8 @@ router.post(
       created: true,
       user: user.toJSON(),
       wallets: [],
+      // Stated rather than left for the client to infer from the wallet field.
+      capabilities: session.capabilities,
       ...pair,
     });
   })
@@ -221,6 +223,7 @@ router.post(
         isPrimary: w.isPrimary,
         label: w.label,
       })),
+      capabilities: session.capabilities,
       ...pair,
     });
   })
@@ -490,6 +493,7 @@ router.post(
         label: w.label,
         provenAt: w.provenAt,
       })),
+      capabilities: session.capabilities,
       ...pair,
     });
   })

@@ -57,6 +57,29 @@ export interface NonceResponse {
   expiresAt: string;
 }
 
+/** Capability tiers, mirroring backend/services/sessionService.js. */
+export type Capability = "read" | "write:offchain" | "write:onchain";
+
+export interface SessionInfo {
+  sid: string;
+  method: "password" | "wallet";
+  role: UserType;
+  capabilities: Capability[];
+  walletAddress: string | null;
+  createdAt: number;
+  lastSeenAt: number;
+}
+
+export interface StepUpResponse {
+  success: boolean;
+  accessToken: string;
+  expiresIn: string;
+  walletAddress: string;
+  capabilities: Capability[];
+  /** Seconds until the on-chain capability decays and must be re-proven. */
+  expiresInSeconds: number;
+}
+
 export interface AuthResponse {
   success: boolean;
   created?: boolean;
@@ -67,4 +90,7 @@ export interface AuthResponse {
   expiresIn: string;
   /** The wallet bound to this session, if any. Null for a password sign-in. */
   walletAddress?: string | null;
+  /** Session id, so the client can correlate with the session endpoints. */
+  sid?: string;
+  capabilities?: Capability[];
 }

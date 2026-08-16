@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { formatEther } from "ethers";
 import { DashboardShell } from "@/components/DashboardShell";
 import { AuthGate } from "@/components/AuthGate";
+import { StepUpPrompt } from "@/components/StepUpPrompt";
 import {
   Address,
   Badge,
@@ -26,7 +27,7 @@ export default function ContractorDashboard() {
   const tenderRepo = useContract("TenderRepo");
   const contractorRepo = useContract("ContractorRepo");
   const stakeManager = useContract("StakeManager");
-  const { sessionWallet } = useAuth();
+  const { sessionWallet, canTransact } = useAuth();
 
   const [openTenders, setOpenTenders] = useState<TenderRow[]>([]);
   const [verified, setVerified] = useState<boolean | null>(null);
@@ -130,13 +131,7 @@ export default function ContractorDashboard() {
 
         {error && <Notice tone="danger">{error}</Notice>}
 
-        {!sessionWallet && (
-          <RequirementCard tone="info" title="Connect a wallet to bid">
-            You can browse open tenders without one. Submitting a bid puts
-            earnest money at stake, so it has to be signed by a wallet you
-            control.
-          </RequirementCard>
-        )}
+        {!canTransact && <StepUpPrompt action="Submitting a bid" />}
 
         {sessionWallet && verified === false && (
           <RequirementCard tone="warning" title="Awaiting verification">

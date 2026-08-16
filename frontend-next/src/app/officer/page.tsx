@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { AuthGate } from "@/components/AuthGate";
+import { StepUpPrompt } from "@/components/StepUpPrompt";
 import {
   Address,
   Card,
   DataTable,
   Notice,
-  RequirementCard,
   SectionHeader,
   Stat,
   StatusBadge,
@@ -34,7 +34,7 @@ interface TenderRow {
 
 export default function OfficerDashboard() {
   const tenderRepo = useContract("TenderRepo");
-  const { sessionWallet } = useAuth();
+  const { canTransact } = useAuth();
 
   const [tenders, setTenders] = useState<TenderRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -134,13 +134,7 @@ export default function OfficerDashboard() {
 
         {error && <Notice tone="danger">{error}</Notice>}
 
-        {!sessionWallet && (
-          <RequirementCard tone="info" title="Read-only session">
-            You&apos;re signed in without a wallet, so you can review everything
-            here but cannot publish a tender or award a contract. Connect and
-            sign with a wallet to act on chain.
-          </RequirementCard>
-        )}
+        {!canTransact && <StepUpPrompt action="Publishing a tender" />}
 
         <Card
           title="Tenders on chain"

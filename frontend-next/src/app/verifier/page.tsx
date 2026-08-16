@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { AuthGate } from "@/components/AuthGate";
+import { StepUpPrompt } from "@/components/StepUpPrompt";
 import {
   Address,
   ApprovalCard,
@@ -25,7 +26,7 @@ interface Party {
 export default function VerifierDashboard() {
   const contractorRepo = useContract("ContractorRepo");
   const officerRepo = useContract("GovernmentOfficerRepo");
-  const { sessionWallet } = useAuth();
+  const { sessionWallet, canTransact, refreshCapabilities } = useAuth();
 
   const [contractors, setContractors] = useState<Party[]>([]);
   const [officers, setOfficers] = useState<Party[]>([]);
@@ -92,6 +93,8 @@ export default function VerifierDashboard() {
           : await repo.verifyOfficer(address);
       await tx.wait();
       await load();
+      // The wallet proof may have lapsed while the transaction was mining.
+      await refreshCapabilities();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       // Contract reverts are unreadable; translate the one users actually hit.
@@ -116,9 +119,12 @@ export default function VerifierDashboard() {
     [officers]
   );
 
-  const blocked = !sessionWallet || canVerify === false;
-  const blockedReason = !sessionWallet
-    ? "Connect and sign with a wallet to verify."
+  // Two independent gates, with different remedies: the session may not be
+  // wallet-proven (the user can fix that by signing), or the wallet may lack
+  // the on-chain role (only an administrator can fix that).
+  const blocked = !canTransact || canVerify === false;
+  const blockedReason = !canTransact
+    ? "Confirm your wallet to verify."
     : "Your wallet doesn't hold VERIFIER_ROLE.";
 
   function queue(
@@ -183,11 +189,8 @@ export default function VerifierDashboard() {
 
         {error && <Notice tone="danger">{error}</Notice>}
 
-        {!sessionWallet ? (
-          <RequirementCard tone="info" title="Verification needs a wallet">
-            Approving a participant writes to the registry, so it has to be
-            signed. You can review the queues below without one.
-          </RequirementCard>
+        {!canTransact ? (
+          <StepUpPrompt action="Approving a participant" />
         ) : (
           canVerify === false && (
             <RequirementCard

@@ -10,18 +10,24 @@ import { tokenStore } from "@/lib/auth/tokenStore";
 import type {
   AuthResponse,
   AuthUser,
+  Capability,
   NonceResponse,
   RegisterPayload,
+  SessionInfo,
   SignUpProfile,
+  StepUpResponse,
 } from "./types";
 
 export type {
   AuthResponse,
   AuthUser,
+  Capability,
   LinkedWallet,
   NonceResponse,
   RegisterPayload,
+  SessionInfo,
   SignUpProfile,
+  StepUpResponse,
   UserType,
 } from "./types";
 
@@ -33,21 +39,59 @@ export interface FieldError {
   message: string;
 }
 
+/**
+ * Structured refusal reasons the backend attaches to a 403.
+ *
+ * These matter because the remedy differs: a missing wallet is fixed by the
+ * user signing, a missing on-chain role is fixed by an administrator. A client
+ * that cannot tell them apart cannot prompt correctly.
+ */
+export interface RefusalDetail {
+  reason?:
+    | "wallet_required"
+    | "wallet_proof_stale"
+    | "capability_required"
+    | "role_not_granted";
+  stepUpUrl?: string;
+  capability?: string;
+  role?: string;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
-    /** Per-field detail from the backend's validation handler, when present. */
-    readonly details?: FieldError[]
+    /**
+     * Either a list of field errors (validation) or a structured refusal
+     * reason (authorisation). The backend uses the same key for both.
+     */
+    readonly details?: FieldError[] | RefusalDetail
   ) {
     super(message);
     this.name = "ApiError";
   }
 
+  get fieldErrors(): FieldError[] | undefined {
+    return Array.isArray(this.details) ? this.details : undefined;
+  }
+
+  get refusal(): RefusalDetail | undefined {
+    return this.details && !Array.isArray(this.details)
+      ? this.details
+      : undefined;
+  }
+
+  /** True when signing with a wallet would resolve this refusal. */
+  get needsWalletStepUp(): boolean {
+    const reason = this.refusal?.reason;
+    return reason === "wallet_required" || reason === "wallet_proof_stale";
+  }
+
   /** Human-readable message including which fields failed. */
   get detailedMessage(): string {
-    if (!this.details?.length) return this.message;
-    return `${this.message}: ${this.details
+    const fields = this.fieldErrors;
+    if (!fields?.length) return this.message;
+    return `${this.message}: ${fields
       .map((d) => `${d.field} - ${d.message}`)
       .join("; ")}`;
   }
@@ -86,11 +130,11 @@ async function rawRequest<T>(
 
   if (!response.ok) {
     let detail = response.statusText;
-    let details: FieldError[] | undefined;
+    let details: FieldError[] | RefusalDetail | undefined;
     try {
       const body = await response.json();
       detail = body?.message ?? body?.error ?? detail;
-      if (Array.isArray(body?.details)) details = body.details;
+      if (body?.details) details = body.details;
     } catch {
       // Non-JSON error body; keep the status text.
     }
@@ -256,7 +300,22 @@ export const api = {
 
   // --- authenticated ---
 
-  me: () => authedRequest<{ user: AuthUser }>("/api/auth/me"),
+  me: () =>
+    authedRequest<{
+      user: AuthUser;
+      capabilities?: Capability[];
+      walletAddress?: string | null;
+    }>("/api/auth/me"),
+
+  /** The current session's capabilities, so the UI can enable the right actions. */
+  session: () => authedRequest<{ session: SessionInfo }>("/api/auth/session"),
+
+  /** Raise the current session to write:onchain by proving a wallet. */
+  stepUp: (message: string, signature: string) =>
+    authedRequest<StepUpResponse>("/api/auth/step-up", {
+      method: "POST",
+      body: JSON.stringify({ message, signature }),
+    }),
 
   getProfile: () => authedRequest<{ user: AuthUser }>("/api/user/profile"),
 
