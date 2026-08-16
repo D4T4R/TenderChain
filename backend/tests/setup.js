@@ -18,6 +18,13 @@ process.env.SIWE_CHAIN_ID = process.env.SIWE_CHAIN_ID || '1337';
 // The auth rate limiter would otherwise trip partway through the suite.
 process.env.AUTH_RATE_LIMIT_MAX = '10000';
 
+// Sessions live in Redis; use a separate keyspace so tests cannot collide
+// with a running dev server.
+process.env.REDIS_URL = process.env.REDIS_TEST_URL || 'redis://127.0.0.1:6379';
+process.env.REDIS_KEY_PREFIX = 'tc-test';
+// Short enough that a test can exercise expiry without sleeping for minutes.
+process.env.ONCHAIN_CAPABILITY_TTL_SECONDS = '900';
+
 // Keep test output readable - the winston console transport is noisy here.
 jest.mock('../utils/logger', () => ({
   info: jest.fn(),

@@ -69,6 +69,12 @@ const errorHandler = (err, req, res, next) => {
   const statusCode = known?.statusCode || err.statusCode || 500;
   const isServerError = statusCode >= 500;
 
+  // An HttpError carries a message we chose deliberately. A 503 telling the
+  // caller to retry is useful and leaks nothing, so it must survive the
+  // scrubbing below - that exists for exceptions that escaped, not for
+  // responses we authored.
+  const isDeliberate = err instanceof HttpError;
+
   const logContext = `${req.method} ${req.originalUrl} -> ${statusCode}`;
   if (isServerError) {
     logger.error(`${logContext}: ${err.message}`, { stack: err.stack });
@@ -78,9 +84,10 @@ const errorHandler = (err, req, res, next) => {
 
   // Never surface an internal failure's message to the client: it can carry
   // query fragments, paths and driver internals.
-  const message = isServerError
-    ? 'Internal server error'
-    : known?.message || err.message;
+  const message =
+    isServerError && !isDeliberate
+      ? 'Internal server error'
+      : known?.message || err.message;
 
   res.status(statusCode).json({
     success: false,

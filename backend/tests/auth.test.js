@@ -2,6 +2,7 @@ const request = require('supertest');
 const { ethers } = require('ethers');
 
 const { connectDB, disconnectDB } = require('../config/database');
+const { connectRedis, disconnectRedis, getRedis, key } = require('../config/redis');
 const app = require('../server');
 const User = require('../models/User');
 const AuthNonce = require('../models/AuthNonce');
@@ -45,7 +46,7 @@ async function authenticate(signer = wallet) {
 
 describe('SIWE authentication', () => {
   beforeAll(async () => {
-    await connectDB();
+    await Promise.all([connectDB(), connectRedis()]);
   }, 60000);
 
   afterAll(async () => {
@@ -55,7 +56,9 @@ describe('SIWE authentication', () => {
       RefreshToken.deleteMany({}),
       LinkedWallet.deleteMany({}),
     ]);
-    await disconnectDB();
+    const keys = await getRedis().keys(key('*'));
+    if (keys.length) await getRedis().del(keys);
+    await Promise.all([disconnectDB(), disconnectRedis()]);
 
     // Requiring the app pulls in fileRoutes, which opens a Bull/Redis
     // connection at import time. Without closing it the process never exits.
@@ -403,6 +406,11 @@ describe('SIWE authentication', () => {
       const { body } = await authenticate();
       const admin = await User.findByWallet(wallet.address);
       await User.updateOne({ _id: admin._id }, { $set: { userType: 'admin' } });
+      // Authorisation reads the role from the session, so writing the document
+      // alone is not enough - the admin route does this via
+      // sessions.updateRoleForUser, and a direct DB edit has to as well.
+      const sessionService = require('../services/sessionService');
+      await sessionService.updateRoleForUser(admin._id, 'admin');
 
       // Existing token still carries the old role, so re-authenticate.
       const refreshed = await request(app)

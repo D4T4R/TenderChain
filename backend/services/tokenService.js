@@ -61,11 +61,14 @@ function hashToken(token) {
  * A password-only session legitimately has none, and on-chain checks must
  * refuse rather than assume one.
  */
-function signAccessToken(user, { walletAddress = null } = {}) {
+function signAccessToken(user, { walletAddress = null, sid = null } = {}) {
   return jwt.sign(
     {
       sub: user._id.toString(),
       role: user.userType,
+      // Session id. The token proves identity; the session in Redis carries
+      // capabilities and revocation, which a stateless token cannot express.
+      ...(sid ? { sid } : {}),
       ...(walletAddress ? { wallet: walletAddress.toLowerCase() } : {}),
     },
     getSecret(),
@@ -94,7 +97,7 @@ function refreshExpiryDate() {
 /**
  * Issues a new refresh token, optionally continuing an existing family.
  */
-async function issueRefreshToken(user, { family, context = {}, walletAddress = null } = {}) {
+async function issueRefreshToken(user, { family, context = {}, walletAddress = null, sid = null } = {}) {
   const token = crypto.randomBytes(48).toString('base64url');
 
   await RefreshToken.create({
@@ -103,6 +106,8 @@ async function issueRefreshToken(user, { family, context = {}, walletAddress = n
     // Records which wallet, if any, established this session. Null for a
     // password-only sign-in.
     walletAddress: walletAddress ? walletAddress.toLowerCase() : null,
+    // Ties the refresh chain to its session, so revoking one revokes the other.
+    sid,
     family: family || crypto.randomUUID(),
     expiresAt: refreshExpiryDate(),
     userAgent: context.userAgent,
@@ -112,13 +117,19 @@ async function issueRefreshToken(user, { family, context = {}, walletAddress = n
   return token;
 }
 
-async function issueTokenPair(user, context, { walletAddress = null } = {}) {
+async function issueTokenPair(user, context, { walletAddress = null, sid = null } = {}) {
   const [accessToken, refreshToken] = await Promise.all([
-    Promise.resolve(signAccessToken(user, { walletAddress })),
-    issueRefreshToken(user, { context, walletAddress }),
+    Promise.resolve(signAccessToken(user, { walletAddress, sid })),
+    issueRefreshToken(user, { context, walletAddress, sid }),
   ]);
 
-  return { accessToken, refreshToken, expiresIn: ACCESS_TOKEN_TTL, walletAddress };
+  return {
+    accessToken,
+    refreshToken,
+    expiresIn: ACCESS_TOKEN_TTL,
+    walletAddress,
+    sid,
+  };
 }
 
 /**
@@ -186,6 +197,7 @@ async function rotateRefreshToken(presentedToken, context = {}) {
     family: record.family,
     context,
     walletAddress: record.walletAddress,
+    sid: record.sid,
   });
 
   record.replacedByHash = hashToken(nextToken);
@@ -195,11 +207,13 @@ async function rotateRefreshToken(presentedToken, context = {}) {
   return {
     accessToken: signAccessToken(record.user, {
       walletAddress: record.walletAddress,
+      sid: record.sid,
     }),
     refreshToken: nextToken,
     expiresIn: ACCESS_TOKEN_TTL,
     user: record.user,
     walletAddress: record.walletAddress,
+    sid: record.sid,
   };
 }
 

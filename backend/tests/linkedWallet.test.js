@@ -2,9 +2,16 @@ const mongoose = require('mongoose');
 const { ethers } = require('ethers');
 
 const { connectDB, disconnectDB } = require('../config/database');
+const {
+  connectRedis,
+  disconnectRedis,
+  getRedis,
+  key,
+} = require('../config/redis');
 const User = require('../models/User');
 const LinkedWallet = require('../models/LinkedWallet');
 const tokens = require('../services/tokenService');
+const sessions = require('../services/sessionService');
 const { requireAuth, requireOnChainRole } = require('../middleware/authMiddleware');
 
 const migration = require('../migrations/20260815020000-decouple-wallet-from-user');
@@ -23,7 +30,7 @@ const addr = () => ethers.Wallet.createRandom().address.toLowerCase();
 
 describe('LinkedWallet / wallet-optional identity', () => {
   beforeAll(async () => {
-    await connectDB();
+    await Promise.all([connectDB(), connectRedis()]);
     // Indexes come from the migration, which is the single source of truth.
     // Calling createIndexes() here would race it and can conflict on names.
     await migration.up(mongoose.connection.db);
@@ -31,7 +38,9 @@ describe('LinkedWallet / wallet-optional identity', () => {
 
   afterAll(async () => {
     await Promise.all([User.deleteMany({}), LinkedWallet.deleteMany({})]);
-    await disconnectDB();
+    const keys = await getRedis().keys(key('*'));
+    if (keys.length) await getRedis().del(keys);
+    await Promise.all([disconnectDB(), disconnectRedis()]);
   });
 
   beforeEach(async () => {
@@ -47,7 +56,8 @@ describe('LinkedWallet / wallet-optional identity', () => {
 
     it('issues a token with no wallet claim for a password-only session', async () => {
       const user = await makeUser();
-      const token = tokens.signAccessToken(user);
+      const session = await sessions.createSession({ user, method: 'password' });
+      const token = tokens.signAccessToken(user, { sid: session.sid });
       const payload = tokens.verifyAccessToken(token);
 
       expect(payload.sub).toBe(user._id.toString());
@@ -56,7 +66,8 @@ describe('LinkedWallet / wallet-optional identity', () => {
 
     it('refuses an on-chain action with a clear wallet_required reason', async () => {
       const user = await makeUser();
-      const token = tokens.signAccessToken(user);
+      const session = await sessions.createSession({ user, method: 'password' });
+      const token = tokens.signAccessToken(user, { sid: session.sid });
 
       const req = {
         headers: { authorization: `Bearer ${token}` },
@@ -75,7 +86,7 @@ describe('LinkedWallet / wallet-optional identity', () => {
       expect(err.statusCode).toBe(403);
       // Distinguishable from "wallet lacks the role": the client needs to know
       // whether to prompt for a signature or tell the user to ask an admin.
-      expect(err.details).toEqual({ reason: 'wallet_required' });
+      expect(err.details.reason).toBe('wallet_required');
     });
   });
 

@@ -2,6 +2,7 @@ const request = require('supertest');
 const mongoose = require('mongoose');
 
 const { connectDB, disconnectDB } = require('../config/database');
+const { connectRedis, disconnectRedis, getRedis, key } = require('../config/redis');
 const app = require('../server');
 const User = require('../models/User');
 const RefreshToken = require('../models/RefreshToken');
@@ -30,7 +31,7 @@ async function registerUser(overrides = {}) {
 
 describe('password authentication', () => {
   beforeAll(async () => {
-    await connectDB();
+    await Promise.all([connectDB(), connectRedis()]);
     await migration.up(mongoose.connection.db);
   }, 60000);
 
@@ -41,7 +42,9 @@ describe('password authentication', () => {
       PasswordResetToken.deleteMany({}),
       LinkedWallet.deleteMany({}),
     ]);
-    await disconnectDB();
+    const keys = await getRedis().keys(key('*'));
+    if (keys.length) await getRedis().del(keys);
+    await Promise.all([disconnectDB(), disconnectRedis()]);
     const fileRoutes = require('../routes/fileRoutes');
     if (fileRoutes.documentQueue) await fileRoutes.documentQueue.close();
   });

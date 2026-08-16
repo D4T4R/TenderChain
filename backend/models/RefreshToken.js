@@ -28,6 +28,13 @@ const refreshTokenSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
+    // The Redis session this refresh chain belongs to. Revoking the session
+    // revokes the chain, so the two cannot drift apart.
+    sid: {
+      type: String,
+      default: null,
+      index: true,
+    },
     // All tokens descended from a single sign-in share a family id. Detecting
     // reuse lets us revoke the whole family rather than just one token.
     family: {

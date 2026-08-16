@@ -1,6 +1,5 @@
 const crypto = require('crypto');
 const express = require('express');
-const rateLimit = require('express-rate-limit');
 
 const User = require('../models/User');
 const LinkedWallet = require('../models/LinkedWallet');
@@ -9,6 +8,8 @@ const siwe = require('../services/siweService');
 const tokens = require('../services/tokenService');
 const passwords = require('../services/passwordService');
 const mail = require('../services/mailService');
+const sessions = require('../services/sessionService');
+const { rateLimiter } = require('../config/rateLimit');
 const { requireAuth, loadUser } = require('../middleware/authMiddleware');
 const { HttpError } = require('../middleware/errorMiddleware');
 const logger = require('../utils/logger');
@@ -42,15 +43,26 @@ const RESET_TOKEN_TTL_MINUTES = Number(
   process.env.PASSWORD_RESET_TTL_MINUTES || 30
 );
 
-// Tighter limits than the global API limiter: these endpoints are the
-// brute-force surface.
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: Number(process.env.AUTH_RATE_LIMIT_MAX || 20),
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, error: 'Too many authentication attempts' },
-});
+/**
+ * Tighter limits than the global API limiter: these endpoints are the
+ * brute-force surface.
+ *
+ * Built lazily for the same reason as the API limiter - at module load Redis
+ * has not connected yet, and the limiter would quietly bind the in-memory
+ * store instead of the shared one.
+ */
+let limiter;
+const authLimiter = (req, res, next) => {
+  if (!limiter) {
+    limiter = rateLimiter({
+      name: 'auth',
+      windowMs: 15 * 60 * 1000,
+      limit: Number(process.env.AUTH_RATE_LIMIT_MAX || 20),
+      message: { success: false, error: 'Too many authentication attempts' },
+    });
+  }
+  return limiter(req, res, next);
+};
 
 function requestContext(req) {
   return {
@@ -121,8 +133,15 @@ router.post(
       throw error;
     }
 
-    // No wallet: this session cannot transact until it is stepped up.
-    const pair = await tokens.issueTokenPair(user, requestContext(req));
+    // No wallet: read and off-chain writes only, until stepped up.
+    const session = await sessions.createSession({
+      user,
+      method: 'password',
+      context: requestContext(req),
+    });
+    const pair = await tokens.issueTokenPair(user, requestContext(req), {
+      sid: session.sid,
+    });
     await user.updateLastLogin();
 
     logger.info(`New user registered with password: ${normalisedEmail}`);
@@ -182,7 +201,14 @@ router.post(
 
     await user.clearLoginFailures();
 
-    const pair = await tokens.issueTokenPair(user, requestContext(req));
+    const session = await sessions.createSession({
+      user,
+      method: 'password',
+      context: requestContext(req),
+    });
+    const pair = await tokens.issueTokenPair(user, requestContext(req), {
+      sid: session.sid,
+    });
     await user.updateLastLogin();
 
     const wallets = await LinkedWallet.findActiveForUser(user._id);
@@ -234,7 +260,16 @@ router.post(
     // Changing a credential ends every other session; otherwise a thief keeps
     // their stolen session alive for the full refresh window.
     const revoked = await tokens.revokeAllForUser(user._id);
-    const pair = await tokens.issueTokenPair(user, requestContext(req));
+    await sessions.revokeAllForUser(user._id);
+
+    const session = await sessions.createSession({
+      user,
+      method: 'password',
+      context: requestContext(req),
+    });
+    const pair = await tokens.issueTokenPair(user, requestContext(req), {
+      sid: session.sid,
+    });
 
     res.json({ success: true, revokedSessions: revoked, ...pair });
   })
@@ -354,6 +389,7 @@ router.post(
     await user.save();
 
     const revoked = await tokens.revokeAllForUser(user._id);
+    await sessions.revokeAllForUser(user._id);
 
     res.json({
       success: true,
@@ -432,8 +468,15 @@ router.post(
 
     // Signing in with a wallet binds it to the session, so this session can act
     // on chain without a separate step-up.
+    const session = await sessions.createSession({
+      user,
+      method: 'wallet',
+      walletAddress,
+      context: requestContext(req),
+    });
     const pair = await tokens.issueTokenPair(user, requestContext(req), {
       walletAddress,
+      sid: session.sid,
     });
     await user.updateLastLogin();
 
@@ -477,6 +520,109 @@ router.post(
   })
 );
 
+/**
+ * Raise an existing session to write:onchain by proving a wallet.
+ *
+ * The session keeps its identity, age and history; only its capability
+ * changes. That is the point of holding sessions in Redis — a stateless token
+ * would have to be reissued, which loses the distinction between "this user
+ * signed in an hour ago and has now proven a wallet" and "this is a new
+ * session".
+ *
+ * The proven wallet is also linked to the account, so a password user adopting
+ * a wallet does not need a separate linking step.
+ */
+router.post(
+  '/step-up',
+  authLimiter,
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { message, signature } = req.body || {};
+
+    const walletAddress = await siwe.verifySignature({ message, signature });
+
+    // The wallet must belong to this account, or be unclaimed. Without this a
+    // signed-in user could raise their session using somebody else's wallet.
+    const existing = await LinkedWallet.findActiveByAddress(walletAddress);
+    if (existing && existing.user.toString() !== req.auth.userId) {
+      throw new HttpError(409, 'That wallet is linked to another account');
+    }
+
+    await LinkedWallet.recordProof(req.auth.userId, walletAddress);
+
+    const session = await sessions.grantOnChainCapability(
+      req.auth.sid,
+      walletAddress
+    );
+    if (!session) throw new HttpError(401, 'Session is no longer valid');
+
+    const user = await User.findById(req.auth.userId);
+
+    // A fresh access token so the client immediately carries the new wallet
+    // claim; the session id, and therefore the session, is unchanged.
+    const accessToken = tokens.signAccessToken(user, {
+      walletAddress,
+      sid: session.sid,
+    });
+
+    logger.info(
+      `Session ${session.sid} stepped up to on-chain capability with ${walletAddress}`
+    );
+
+    res.json({
+      success: true,
+      accessToken,
+      expiresIn: tokens.ACCESS_TOKEN_TTL,
+      walletAddress,
+      capabilities: session.capabilities,
+      expiresInSeconds: sessions.ONCHAIN_CAPABILITY_TTL_SECONDS,
+    });
+  })
+);
+
+/** The current session's capabilities, so the UI can enable the right actions. */
+router.get(
+  '/session',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    res.json({
+      success: true,
+      session: {
+        sid: req.auth.sid,
+        method: req.auth.method,
+        role: req.auth.role,
+        capabilities: req.auth.capabilities,
+        walletAddress: req.auth.walletAddress,
+        createdAt: req.session.createdAt,
+        lastSeenAt: req.session.lastSeenAt,
+      },
+    });
+  })
+);
+
+/** Every live session for the account, so a user can audit and end them. */
+router.get(
+  '/sessions',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const live = await sessions.listSessionsForUser(req.auth.userId);
+    res.json({
+      success: true,
+      sessions: live.map((s) => ({
+        sid: s.sid,
+        current: s.sid === req.auth.sid,
+        method: s.method,
+        capabilities: s.capabilities,
+        walletAddress: s.walletAddress,
+        userAgent: s.userAgent,
+        ipAddress: s.ipAddress,
+        createdAt: s.createdAt,
+        lastSeenAt: s.lastSeenAt,
+      })),
+    });
+  })
+);
+
 router.post(
   '/logout',
   asyncHandler(async (req, res) => {
@@ -485,8 +631,15 @@ router.post(
     if (allSessions) {
       // Requires a valid access token to know whose sessions to end.
       return requireAuth(req, res, async (err) => {
-        if (err) return res.status(401).json({ success: false, error: 'Authentication required' });
-        const count = await tokens.revokeAllForUser(req.auth.userId);
+        if (err) {
+          return res
+            .status(401)
+            .json({ success: false, error: 'Authentication required' });
+        }
+        const [count] = await Promise.all([
+          tokens.revokeAllForUser(req.auth.userId),
+          sessions.revokeAllForUser(req.auth.userId),
+        ]);
         return res.json({ success: true, revoked: count });
       });
     }
@@ -494,6 +647,18 @@ router.post(
     if (!refreshToken) throw new HttpError(400, 'refreshToken is required');
 
     const revoked = await tokens.revokeRefreshToken(refreshToken);
+
+    // End the Redis session too, otherwise the access token stays usable for
+    // the rest of its lifetime after a "sign out".
+    if (req.headers.authorization) {
+      await new Promise((resolve) =>
+        requireAuth(req, res, async () => {
+          if (req.auth?.sid) await sessions.revokeSession(req.auth.sid);
+          resolve();
+        })
+      ).catch(() => {});
+    }
+
     return res.json({ success: true, revoked: revoked ? 1 : 0 });
   })
 );
@@ -503,7 +668,12 @@ router.get(
   requireAuth,
   loadUser,
   asyncHandler(async (req, res) => {
-    res.json({ success: true, user: req.user.toJSON() });
+    res.json({
+      success: true,
+      user: req.user.toJSON(),
+      capabilities: req.auth.capabilities,
+      walletAddress: req.auth.walletAddress,
+    });
   })
 );
 

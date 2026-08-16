@@ -7,12 +7,34 @@ jest.mock('../services/chainService', () => ({
   roleId: jest.requireActual('../services/chainService').roleId,
 }));
 
+const ONCHAIN = 'write:onchain';
+
+/**
+ * requireOnChainRole checks the session capability before touching the chain,
+ * so a fabricated auth object has to carry it to reach the RPC path.
+ */
 function mockReqRes(auth) {
-  return [{ auth, method: 'POST', originalUrl: '/api/x' }, {}];
+  const withCapability = auth
+    ? { capabilities: [ONCHAIN], ...auth }
+    : undefined;
+  return [{ auth: withCapability, method: 'POST', originalUrl: '/api/x' }, {}];
 }
 
 describe('requireOnChainRole', () => {
   afterEach(() => jest.clearAllMocks());
+
+  it('refuses a session without the on-chain capability, before any RPC', async () => {
+    // A password session must be told to step up rather than have a stale or
+    // absent wallet checked against the chain.
+    const req = { auth: { capabilities: ['read'] }, method: 'POST', originalUrl: '/api/x' };
+    const next = jest.fn();
+
+    await requireOnChainRole('ContractorRepo', 'VERIFIER_ROLE')(req, {}, next);
+
+    expect(next.mock.calls[0][0].statusCode).toBe(403);
+    expect(next.mock.calls[0][0].details.reason).toBe('wallet_required');
+    expect(chain.hasRole).not.toHaveBeenCalled();
+  });
 
   it('rejects when unauthenticated', async () => {
     const [req, res] = mockReqRes(undefined);

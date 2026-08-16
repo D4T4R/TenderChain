@@ -3,11 +3,13 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
-const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const logger = require('./utils/logger');
 const { connectDB, disconnectDB, redactUri } = require('./config/database');
+const { connectRedis, disconnectRedis, isReady: redisReady, redactUrl } =
+  require('./config/redis');
+const { rateLimiter } = require('./config/rateLimit');
 const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 
 // Import routes
@@ -27,15 +29,26 @@ const PORT = process.env.PORT || 3001;
 app.use(helmet());
 app.use(compression());
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: (process.env.RATE_LIMIT_WINDOW || 15) * 60 * 1000, // 15 minutes
-  max: process.env.RATE_LIMIT_MAX_REQUESTS || 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
+/**
+ * Rate limiting.
+ *
+ * Mounted here so it sits ahead of the routes in the middleware chain, but the
+ * limiter itself is built on first request. That ordering matters: the Redis
+ * store can only be attached once Redis has connected, and a limiter created
+ * at module load would silently fall back to a per-process counter.
+ */
+let apiLimiter;
+app.use('/api/', (req, res, next) => {
+  if (!apiLimiter) {
+    apiLimiter = rateLimiter({
+      name: 'api',
+      windowMs: Number(process.env.RATE_LIMIT_WINDOW || 15) * 60 * 1000,
+      limit: Number(process.env.RATE_LIMIT_MAX_REQUESTS || 100),
+      message: 'Too many requests from this IP, please try again later.',
+    });
+  }
+  return apiLimiter(req, res, next);
 });
-app.use('/api/', limiter);
 
 // CORS configuration.
 //
@@ -81,8 +94,17 @@ if (process.env.NODE_ENV === 'development') {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
+  const mongoUp = require('./config/database').isConnected();
+  const redisUp = redisReady();
+  // Redis holds sessions, so the API cannot authenticate anything without it.
+  const healthy = mongoUp && redisUp;
+
+  res.status(healthy ? 200 : 503).json({
+    status: healthy ? 'OK' : 'DEGRADED',
+    dependencies: {
+      mongodb: mongoUp ? 'up' : 'down',
+      redis: redisUp ? 'up' : 'down',
+    },
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV,
@@ -130,7 +152,7 @@ async function shutdown(signal) {
       });
       logger.info('HTTP server closed');
     }
-    await disconnectDB();
+    await Promise.all([disconnectDB(), disconnectRedis()]);
     clearTimeout(forceExit);
     process.exit(0);
   } catch (error) {
@@ -143,14 +165,17 @@ process.on('SIGTERM', () => void shutdown('SIGTERM'));
 process.on('SIGINT', () => void shutdown('SIGINT'));
 
 async function start() {
-  // Connect before listening so the server never accepts traffic it cannot serve.
-  await connectDB();
+  // Connect before listening so the server never accepts traffic it cannot
+  // serve. Redis is required: sessions live there, so without it every
+  // authenticated request would fail anyway.
+  await Promise.all([connectDB(), connectRedis()]);
 
   server = app.listen(PORT, () => {
     logger.info(`🚀 TenderChain Backend Server running on port ${PORT}`);
     logger.info(`📝 Environment: ${process.env.NODE_ENV}`);
     // Redacted: the raw URI may embed credentials.
     logger.info(`🗄️ Database: ${redactUri(process.env.MONGODB_URI)}`);
+    logger.info(`⚡ Redis: ${redactUrl(process.env.REDIS_URL)}`);
   });
 
   return server;

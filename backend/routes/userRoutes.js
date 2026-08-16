@@ -3,6 +3,7 @@ const { body, param, validationResult } = require('express-validator');
 
 const User = require('../models/User');
 const tokens = require('../services/tokenService');
+const sessions = require('../services/sessionService');
 const {
   requireAuth,
   loadUser,
@@ -145,6 +146,9 @@ router.patch(
     const user = await User.findById(req.params.userId);
     if (!user) throw new HttpError(404, 'User not found');
 
+    const roleChanged =
+      req.body.userType !== undefined && req.body.userType !== user.userType;
+
     if (req.body.userType !== undefined) user.userType = req.body.userType;
     if (req.body.kycStatus !== undefined) user.kycStatus = req.body.kycStatus;
 
@@ -153,11 +157,21 @@ router.patch(
       // Deactivating must also cut existing sessions, otherwise the user keeps
       // working until their refresh token expires.
       if (req.body.isActive === false) {
-        await tokens.revokeAllForUser(user._id);
+        await Promise.all([
+          tokens.revokeAllForUser(user._id),
+          sessions.revokeAllForUser(user._id),
+        ]);
       }
     }
 
     await user.save();
+
+    // Authorisation reads the role from the session, so a change here has to be
+    // pushed to live sessions. Without this a demotion would not take effect
+    // until every existing session expired.
+    if (roleChanged && user.isActive) {
+      await sessions.updateRoleForUser(user._id, user.userType);
+    }
     res.json({ success: true, user: user.toJSON() });
   })
 );
