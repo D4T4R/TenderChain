@@ -1,11 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
-import { Card, StatCard, EmptyState, ErrorNotice, Spinner } from "@/components/ui";
 import { AuthGate } from "@/components/AuthGate";
+import {
+  Address,
+  ApprovalCard,
+  Badge,
+  Card,
+  EmptyState,
+  Notice,
+  RequirementCard,
+  SkeletonRows,
+  Stat,
+} from "@/components/ui";
 import { useContract } from "@/lib/web3/useContract";
-import { useWallet } from "@/lib/web3/WalletProvider";
+import { useAuth } from "@/lib/auth/AuthProvider";
 
 interface Party {
   address: string;
@@ -13,9 +23,9 @@ interface Party {
 }
 
 export default function VerifierDashboard() {
-  const { account } = useWallet();
   const contractorRepo = useContract("ContractorRepo");
   const officerRepo = useContract("GovernmentOfficerRepo");
+  const { sessionWallet } = useAuth();
 
   const [contractors, setContractors] = useState<Party[]>([]);
   const [officers, setOfficers] = useState<Party[]>([]);
@@ -25,7 +35,6 @@ export default function VerifierDashboard() {
   const [pending, setPending] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    // No wallet/provider yet: nothing to read, so stop showing the spinner.
     if (!contractorRepo || !officerRepo) {
       setLoading(false);
       return;
@@ -51,22 +60,22 @@ export default function VerifierDashboard() {
       setContractors(contractorRows);
       setOfficers(officerRows);
 
-      if (account) {
+      if (sessionWallet) {
         const role = await contractorRepo.VERIFIER_ROLE();
-        setCanVerify(await contractorRepo.hasRole(role, account));
+        setCanVerify(await contractorRepo.hasRole(role, sessionWallet));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to read chain state");
+      setError(
+        err instanceof Error ? err.message : "Failed to read chain state"
+      );
     } finally {
       setLoading(false);
     }
-  }, [contractorRepo, officerRepo, account]);
+  }, [contractorRepo, officerRepo, sessionWallet]);
 
   useEffect(() => {
-  // Fetch on mount. Every setState inside the loader runs after an await, so
-  // this does not cause the cascading synchronous renders the rule guards
-  // against, but the rule cannot see through the async boundary.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+    // See note in the officer dashboard: state updates happen post-await.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
 
@@ -85,41 +94,60 @@ export default function VerifierDashboard() {
       await load();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      // Contract reverts are unreadable; translate the one users actually hit.
       setError(
         /AccessControl/i.test(message)
-          ? "Your account does not hold VERIFIER_ROLE on this registry. Ask the admin to grant it."
-          : message
+          ? "Your wallet doesn't hold VERIFIER_ROLE on this registry. A registry administrator has to grant it before you can verify."
+          : /user rejected|4001/i.test(message)
+            ? "You rejected the transaction in your wallet."
+            : message
       );
     } finally {
       setPending(null);
     }
   }
 
-  const pendingContractors = contractors.filter((c) => !c.verified);
-  const pendingOfficers = officers.filter((o) => !o.verified);
+  const pendingContractors = useMemo(
+    () => contractors.filter((c) => !c.verified),
+    [contractors]
+  );
+  const pendingOfficers = useMemo(
+    () => officers.filter((o) => !o.verified),
+    [officers]
+  );
 
-  function renderList(kind: "contractor" | "officer", rows: Party[]) {
+  const blocked = !sessionWallet || canVerify === false;
+  const blockedReason = !sessionWallet
+    ? "Connect and sign with a wallet to verify."
+    : "Your wallet doesn't hold VERIFIER_ROLE.";
+
+  function queue(
+    kind: "contractor" | "officer",
+    rows: Party[],
+    emptyLabel: string
+  ) {
+    if (loading) return <SkeletonRows rows={2} />;
     if (rows.length === 0) {
-      return <EmptyState title="Nothing awaiting verification" />;
+      return <EmptyState title={emptyLabel} />;
     }
     return (
-      <ul className="divide-y divide-slate-100">
+      <ul className="space-y-2.5">
         {rows.map((row) => (
-          <li
+          <ApprovalCard
             key={row.address}
-            className="flex items-center justify-between gap-4 py-3"
-          >
-            <span className="font-mono text-xs text-slate-700">
-              {row.address}
-            </span>
-            <button
-              onClick={() => void verify(kind, row.address)}
-              disabled={pending === row.address || canVerify === false}
-              className="rounded-lg bg-[color:var(--brand-to)] px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-            >
-              {pending === row.address ? "Verifying…" : "Verify"}
-            </button>
-          </li>
+            title={<Address value={row.address} />}
+            subtitle={
+              kind === "contractor"
+                ? "Registered contractor awaiting approval"
+                : "Registered officer awaiting approval"
+            }
+            meta={<Badge tone="warning">Unverified</Badge>}
+            approveLabel="Verify"
+            onApprove={() => void verify(kind, row.address)}
+            pending={pending === row.address}
+            disabled={blocked}
+            disabledReason={blocked ? blockedReason : undefined}
+          />
         ))}
       </ul>
     );
@@ -127,40 +155,78 @@ export default function VerifierDashboard() {
 
   return (
     <DashboardShell
-      title="Verifier"
+      title="Verification"
       subtitle="Approve participants and attest to milestone completion"
     >
-      <AuthGate roles={["verifier", "admin"]}>
-      {account && canVerify === false && (
-        <ErrorNotice message="This account does not hold VERIFIER_ROLE. Verification buttons are disabled. The registry admin can grant the role." />
-      )}
+      <AuthGate roles={["verifier", "public_verifier", "admin"]}>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Stat
+            label="Contractors pending"
+            value={pendingContractors.length}
+            tone={pendingContractors.length ? "warning" : "neutral"}
+            loading={loading}
+          />
+          <Stat
+            label="Officers pending"
+            value={pendingOfficers.length}
+            tone={pendingOfficers.length ? "warning" : "neutral"}
+            loading={loading}
+          />
+          <Stat
+            label="On-chain authority"
+            value={canVerify === null ? "—" : canVerify ? "Granted" : "None"}
+            tone={canVerify ? "success" : "warning"}
+            hint={canVerify === false ? "VERIFIER_ROLE not held" : undefined}
+            loading={loading}
+          />
+        </div>
 
-      <div className="grid gap-5 sm:grid-cols-3">
-        <StatCard label="Contractors pending" value={pendingContractors.length} />
-        <StatCard label="Officers pending" value={pendingOfficers.length} />
-        <StatCard
-          label="Your role"
-          value={canVerify === null ? "—" : canVerify ? "Verifier" : "None"}
-        />
-      </div>
+        {error && <Notice tone="danger">{error}</Notice>}
 
-      {error && <ErrorNotice message={error} />}
-
-      <Card title="Contractors awaiting verification">
-        {loading ? (
-          <Spinner label="Reading registries…" />
+        {!sessionWallet ? (
+          <RequirementCard tone="info" title="Verification needs a wallet">
+            Approving a participant writes to the registry, so it has to be
+            signed. You can review the queues below without one.
+          </RequirementCard>
         ) : (
-          renderList("contractor", pendingContractors)
+          canVerify === false && (
+            <RequirementCard
+              tone="warning"
+              title="Your wallet cannot verify yet"
+            >
+              Being marked a verifier in this application does not grant
+              on-chain authority. A registry administrator must grant{" "}
+              <code className="rounded bg-surface-sunken px-1.5 py-0.5 font-mono text-xs">
+                VERIFIER_ROLE
+              </code>{" "}
+              to your wallet — the contracts enforce this independently, which
+              is what stops the database becoming a second, weaker source of
+              truth.
+            </RequirementCard>
+          )
         )}
-      </Card>
 
-      <Card title="Officers awaiting verification">
-        {loading ? (
-          <Spinner label="Reading registries…" />
-        ) : (
-          renderList("officer", pendingOfficers)
-        )}
-      </Card>
+        <Card
+          title="Contractors awaiting verification"
+          actions={
+            pendingContractors.length > 0 ? (
+              <Badge tone="warning">{pendingContractors.length}</Badge>
+            ) : undefined
+          }
+        >
+          {queue("contractor", pendingContractors, "Nothing awaiting approval")}
+        </Card>
+
+        <Card
+          title="Officers awaiting verification"
+          actions={
+            pendingOfficers.length > 0 ? (
+              <Badge tone="warning">{pendingOfficers.length}</Badge>
+            ) : undefined
+          }
+        >
+          {queue("officer", pendingOfficers, "Nothing awaiting approval")}
+        </Card>
       </AuthGate>
     </DashboardShell>
   );

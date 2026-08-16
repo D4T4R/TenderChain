@@ -11,10 +11,19 @@ import type {
   AuthResponse,
   AuthUser,
   NonceResponse,
+  RegisterPayload,
   SignUpProfile,
 } from "./types";
 
-export type { AuthResponse, AuthUser, NonceResponse, SignUpProfile, UserType } from "./types";
+export type {
+  AuthResponse,
+  AuthUser,
+  LinkedWallet,
+  NonceResponse,
+  RegisterPayload,
+  SignUpProfile,
+  UserType,
+} from "./types";
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
@@ -207,6 +216,36 @@ export const api = {
     request<AuthResponse>("/api/auth/verify", {
       method: "POST",
       body: JSON.stringify(payload),
+    }),
+
+  register: (payload: RegisterPayload) =>
+    request<AuthResponse>("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  login: (email: string, password: string) =>
+    request<AuthResponse>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
+
+  forgotPassword: (email: string) =>
+    request<{ success: boolean; message: string }>("/api/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+
+  resetPassword: (token: string, newPassword: string) =>
+    request<{ success: boolean; message: string }>("/api/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, newPassword }),
+    }),
+
+  changePassword: (currentPassword: string, newPassword: string) =>
+    authedRequest<AuthResponse>("/api/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify({ currentPassword, newPassword }),
     }),
 
   logout: (refreshToken: string) =>

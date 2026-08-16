@@ -2,7 +2,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
-import { Card, StatCard, EmptyState, ErrorNotice, Spinner } from "@/components/ui";
+import {
+  Address,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  InsightCard,
+  Notice,
+  SkeletonRows,
+  Stat,
+} from "@/components/ui";
 import { api, ApiError, type TenderSummary } from "@/lib/api/client";
 
 export default function PublicDashboard() {
@@ -21,15 +31,13 @@ export default function PublicDashboard() {
       setSummaries(data.summaries ?? []);
       setTotal(data.total ?? data.summaries?.length ?? 0);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 0) {
-        setError(
-          "Cannot reach the backend API. Start it with `npm start` in the backend directory."
-        );
-      } else {
-        setError(
-          err instanceof Error ? err.message : "Failed to load tender summaries"
-        );
-      }
+      setError(
+        err instanceof ApiError && err.status === 0
+          ? "Cannot reach the API. Start the backend with `npm start` in the backend directory."
+          : err instanceof Error
+            ? err.message
+            : "Failed to load tender summaries"
+      );
       setSummaries([]);
     } finally {
       setLoading(false);
@@ -37,10 +45,8 @@ export default function PublicDashboard() {
   }, []);
 
   useEffect(() => {
-  // Fetch on mount. Every setState inside the loader runs after an await, so
-  // this does not cause the cascading synchronous renders the rule guards
-  // against, but the rule cannot see through the async boundary.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+    // See note in the officer dashboard: state updates happen post-await.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load("");
   }, [load]);
 
@@ -49,42 +55,66 @@ export default function PublicDashboard() {
       title="Public Transparency"
       subtitle="Automatically generated summaries of published tender documents"
     >
-      <div className="grid gap-5 sm:grid-cols-2">
-        <StatCard label="Summaries published" value={total} />
-        <StatCard
-          label="Wallet required"
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Stat label="Summaries published" value={total} loading={loading} />
+        <Stat
+          label="Sign-in required"
           value="No"
-          hint="This view is read-only and open to everyone"
+          hint="This view is open to everyone"
+        />
+        <Stat
+          label="Source"
+          value="On-chain"
+          hint="Summaries reference the tender contract"
         />
       </div>
 
-      <Card title="Search tender summaries">
+      <Card
+        title="Search summaries"
+        description="Full-text search across published tender documents"
+      >
         <form
           onSubmit={(e) => {
             e.preventDefault();
             setLoading(true);
             void load(search);
           }}
-          className="flex flex-wrap gap-3"
+          className="flex flex-wrap gap-2"
         >
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="e.g. road construction"
-            className="min-w-0 flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-800 outline-none focus:border-[color:var(--brand-to)]"
+            aria-label="Search tender summaries"
+            className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 text-sm text-text outline-none transition-colors placeholder:text-text-subtle hover:border-border-strong focus:border-accent"
           />
-          <button
-            type="submit"
-            className="rounded-lg bg-[color:var(--brand-to)] px-5 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-          >
-            Search
-          </button>
+          <Button type="submit">Search</Button>
+          {search && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setSearch("");
+                setLoading(true);
+                void load("");
+              }}
+            >
+              Clear
+            </Button>
+          )}
         </form>
       </Card>
 
-      <Card title="Published summaries">
-        {error && <ErrorNotice message={error} />}
-        {loading && !error && <Spinner label="Loading summaries…" />}
+      <Card
+        title="Published summaries"
+        description="Generated automatically from the uploaded document"
+        actions={
+          <Badge tone="accent">Machine generated</Badge>
+        }
+      >
+        {error && <Notice tone="danger">{error}</Notice>}
+
+        {loading && !error && <SkeletonRows rows={3} />}
 
         {!loading && !error && summaries.length === 0 && (
           <EmptyState
@@ -94,44 +124,50 @@ export default function PublicDashboard() {
         )}
 
         {!loading && summaries.length > 0 && (
-          <ul className="space-y-4">
-            {summaries.map((item) => (
-              <li
-                key={item._id}
-                className="rounded-xl border border-slate-200 p-4"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="font-semibold text-slate-800">
-                    {item.summary?.workType ?? "Tender"} — {item.tenderId}
-                  </h3>
-                  {typeof item.summary?.confidence === "number" && (
-                    <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
-                      {item.summary.confidence}% confidence
+          <>
+            <p className="mb-3 text-xs leading-relaxed text-text-subtle">
+              These summaries are produced by automated text analysis, not by a
+              person. The confidence score reflects how much of the source
+              document the extractor could interpret — always check the original
+              tender before relying on the detail.
+            </p>
+
+            <ul className="space-y-2.5">
+              {summaries.map((item) => (
+                <InsightCard
+                  key={item._id}
+                  title={`${item.summary?.workType ?? "Tender"} — ${item.tenderId}`}
+                  category={item.category}
+                  confidence={item.summary?.confidence}
+                  summary={item.summary?.description}
+                  facts={[
+                    ...(item.summary?.location
+                      ? [
+                          {
+                            label: "Location",
+                            value: item.summary.location,
+                          },
+                        ]
+                      : []),
+                    ...(item.summary?.estimatedValue
+                      ? [
+                          {
+                            label: "Estimated value",
+                            value: item.summary.estimatedValue,
+                          },
+                        ]
+                      : []),
+                  ]}
+                  footer={
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span>Tender contract</span>
+                      <Address value={item.tenderAddress} />
                     </span>
-                  )}
-                </div>
-                {item.summary?.description && (
-                  <p className="mt-2 text-sm text-slate-600">
-                    {item.summary.description}
-                  </p>
-                )}
-                <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-500">
-                  {item.summary?.location && (
-                    <div>
-                      <dt className="inline font-medium">Location: </dt>
-                      <dd className="inline">{item.summary.location}</dd>
-                    </div>
-                  )}
-                  {item.summary?.estimatedValue && (
-                    <div>
-                      <dt className="inline font-medium">Estimated value: </dt>
-                      <dd className="inline">{item.summary.estimatedValue}</dd>
-                    </div>
-                  )}
-                </dl>
-              </li>
-            ))}
-          </ul>
+                  }
+                />
+              ))}
+            </ul>
+          </>
         )}
       </Card>
     </DashboardShell>

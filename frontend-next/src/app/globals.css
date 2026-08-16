@@ -1,38 +1,198 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Design tokens.
+ *
+ * Everything is semantic (surface / border / text / accent) rather than literal
+ * ("purple-500"), so light and dark are one set of names with two sets of
+ * values, and a component never has to know which theme is active.
+ *
+ * The palette is neutral-first because this UI is dense with tables and
+ * addresses, and coloured backgrounds behind that much data cost legibility.
+ * Depth comes from layered surfaces rather than gradients; a single vivid
+ * accent carries emphasis.
+ */
 
-  /* Carried over from the previous "modern" dashboards so the visual identity
-     survives the port. */
-  --brand-from: #667eea;
-  --brand-to: #764ba2;
+:root {
+  /* Layered surfaces, lightest to most raised. */
+  --bg: oklch(98.5% 0.002 250);
+  --surface: oklch(100% 0 0);
+  --surface-raised: oklch(100% 0 0);
+  --surface-sunken: oklch(96.8% 0.003 250);
+  --surface-hover: oklch(96.5% 0.004 265);
+
+  --border: oklch(91% 0.005 265);
+  --border-strong: oklch(84% 0.008 265);
+
+  --text: oklch(21% 0.012 265);
+  --text-muted: oklch(50% 0.012 265);
+  --text-subtle: oklch(63% 0.010 265);
+
+  /* One vivid accent, descended from the original brand violet but more
+     saturated so it reads as deliberate rather than decorative. */
+  --accent: oklch(58% 0.215 285);
+  --accent-hover: oklch(53% 0.215 285);
+  --accent-fg: oklch(100% 0 0);
+  --accent-subtle: oklch(96% 0.028 285);
+  --accent-border: oklch(88% 0.06 285);
+
+  --success: oklch(58% 0.15 155);
+  --success-subtle: oklch(96% 0.04 155);
+  --warning: oklch(65% 0.15 75);
+  --warning-subtle: oklch(96% 0.05 85);
+  --danger: oklch(56% 0.20 25);
+  --danger-subtle: oklch(96% 0.03 25);
+  --info: oklch(58% 0.15 250);
+  --info-subtle: oklch(96% 0.03 250);
+
+  --ring: oklch(58% 0.215 285 / 0.45);
+
+  --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.05);
+  --shadow: 0 1px 3px oklch(0% 0 0 / 0.07), 0 1px 2px oklch(0% 0 0 / 0.04);
+  --shadow-lg: 0 10px 24px -6px oklch(0% 0 0 / 0.10), 0 4px 8px -4px oklch(0% 0 0 / 0.06);
+
+  --radius: 0.75rem;
+}
+
+[data-theme="dark"] {
+  /* Near-black rather than pure black: pure #000 makes elevation impossible to
+     read, since a raised surface has nowhere darker to sit against. */
+  --bg: oklch(16% 0.008 265);
+  --surface: oklch(19.5% 0.010 265);
+  --surface-raised: oklch(23% 0.012 265);
+  --surface-sunken: oklch(14% 0.008 265);
+  --surface-hover: oklch(26% 0.014 265);
+
+  --border: oklch(28% 0.012 265);
+  --border-strong: oklch(36% 0.016 265);
+
+  --text: oklch(96% 0.004 265);
+  --text-muted: oklch(72% 0.010 265);
+  --text-subtle: oklch(58% 0.012 265);
+
+  /* Lifted and slightly desaturated: the light-mode accent vibrates against a
+     dark background and fails contrast on small text. */
+  --accent: oklch(72% 0.175 288);
+  --accent-hover: oklch(78% 0.175 288);
+  --accent-fg: oklch(17% 0.02 285);
+  --accent-subtle: oklch(26% 0.055 288);
+  --accent-border: oklch(38% 0.09 288);
+
+  --success: oklch(74% 0.15 158);
+  --success-subtle: oklch(26% 0.05 158);
+  --warning: oklch(80% 0.14 82);
+  --warning-subtle: oklch(28% 0.05 82);
+  --danger: oklch(70% 0.17 25);
+  --danger-subtle: oklch(27% 0.06 25);
+  --info: oklch(74% 0.13 250);
+  --info-subtle: oklch(26% 0.05 250);
+
+  --ring: oklch(72% 0.175 288 / 0.5);
+
+  --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.4);
+  --shadow: 0 1px 3px oklch(0% 0 0 / 0.5), 0 1px 2px oklch(0% 0 0 / 0.4);
+  --shadow-lg: 0 12px 28px -8px oklch(0% 0 0 / 0.6), 0 4px 10px -4px oklch(0% 0 0 / 0.45);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-brand-from: var(--brand-from);
-  --color-brand-to: var(--brand-to);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-hover: var(--surface-hover);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-subtle: var(--text-subtle);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-border: var(--accent-border);
+
+  --color-success: var(--success);
+  --color-success-subtle: var(--success-subtle);
+  --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-danger: var(--danger);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-info: var(--info);
+  --color-info-subtle: var(--info-subtle);
+
   --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
+
+  --radius-card: var(--radius);
+}
+
+/* Tailwind v4: teach the `dark:` variant to follow our attribute rather than
+   the media query, so the manual toggle actually works. */
+@custom-variant dark ([data-theme="dark"] &);
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  color-scheme: light;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 body {
-  color: var(--foreground);
+  background: var(--bg);
+  color: var(--text);
   font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Shared surface treatment: frosted glass over the brand gradient. */
-@utility glass {
-  background: rgb(255 255 255 / 0.1);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgb(255 255 255 / 0.2);
+/* Numeric columns line up when digits share a width - important for a UI full
+   of addresses, amounts and confidence scores. */
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 
-@utility glass-card {
-  background: rgb(255 255 255 / 0.95);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgb(255 255 255 / 0.3);
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Respect users who have asked for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@utility skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-sunken);
+}
+@utility skeleton-shimmer {
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    var(--surface-hover),
+    transparent
+  );
+  animation: shimmer 1.6s infinite;
 }

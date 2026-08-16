@@ -1,15 +1,24 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import type { UserType } from "@/lib/api/types";
 import { AuthPanel } from "./AuthPanel";
-import { Card } from "./ui";
+import { RequirementCard } from "./ui";
+
+const ROLE_LABELS: Record<UserType, string> = {
+  government_officer: "government officer",
+  contractor: "contractor",
+  verifier: "verifier",
+  public_verifier: "public verifier",
+  admin: "administrator",
+};
 
 /**
  * Renders children only for a signed-in user, optionally restricted by role.
  *
- * This is a UX guard, not a security boundary: the API enforces authorisation
+ * A UX guard, not a security boundary: the API enforces authorisation
  * independently. Hiding a button never protects an endpoint.
  */
 export function AuthGate({
@@ -22,18 +31,33 @@ export function AuthGate({
   const { status, user } = useAuth();
 
   if (status !== "signedIn" || !user) {
-    return <AuthPanel />;
+    return (
+      <div className="mx-auto max-w-md">
+        <AuthPanel />
+      </div>
+    );
   }
 
   if (roles && !roles.includes(user.userType)) {
     return (
-      <Card title="Not available for your role">
-        <p className="text-sm text-slate-600">
-          You&apos;re signed in as{" "}
-          <strong>{user.userType.replace(/_/g, " ")}</strong>. This dashboard is
-          for {roles.map((r) => r.replace(/_/g, " ")).join(" or ")}.
-        </p>
-      </Card>
+      <RequirementCard
+        tone="info"
+        title="This area is for a different role"
+        action={
+          <Link
+            href="/public"
+            className="inline-flex h-8 items-center rounded-lg border border-border bg-surface-raised px-3 text-xs font-medium text-text transition-colors hover:bg-surface-hover"
+          >
+            Go to public transparency
+          </Link>
+        }
+      >
+        You&apos;re signed in as a{" "}
+        <strong className="text-text">{ROLE_LABELS[user.userType]}</strong>.
+        This dashboard is for{" "}
+        {roles.map((r) => ROLE_LABELS[r]).join(" or ")} accounts. Roles are
+        granted by an administrator.
+      </RequirementCard>
     );
   }
 

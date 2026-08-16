@@ -2,11 +2,26 @@ export type UserType =
   | "contractor"
   | "government_officer"
   | "verifier"
+  // General-population verifier: bonded rather than authorised, participates in
+  // the stake-gated public claims flow.
+  | "public_verifier"
   | "admin";
+
+/**
+ * A wallet the account has proven control of.
+ *
+ * An account may have none: identity is decoupled from the wallet, and only
+ * on-chain actions require one.
+ */
+export interface LinkedWallet {
+  address: string;
+  isPrimary: boolean;
+  label?: string;
+  provenAt?: string;
+}
 
 export interface AuthUser {
   _id: string;
-  walletAddress: string;
   userType: UserType;
   email: string;
   phoneNumber: string;
@@ -28,6 +43,10 @@ export interface SignUpProfile {
   userType?: UserType;
 }
 
+export interface RegisterPayload extends SignUpProfile {
+  password: string;
+}
+
 export interface NonceResponse {
   success: boolean;
   nonce: string;
@@ -42,7 +61,10 @@ export interface AuthResponse {
   success: boolean;
   created?: boolean;
   user: AuthUser;
+  wallets?: LinkedWallet[];
   accessToken: string;
   refreshToken: string;
   expiresIn: string;
+  /** The wallet bound to this session, if any. Null for a password sign-in. */
+  walletAddress?: string | null;
 }

@@ -11,7 +11,12 @@ import {
 } from "react";
 import { SiweMessage } from "siwe";
 import { api, ApiError, setAuthLostHandler } from "@/lib/api/client";
-import type { AuthUser, SignUpProfile } from "@/lib/api/types";
+import type {
+  AuthUser,
+  LinkedWallet,
+  RegisterPayload,
+  SignUpProfile,
+} from "@/lib/api/types";
 import { EXPECTED_CHAIN_ID } from "@/lib/contracts/addresses";
 import { useWallet } from "@/lib/web3/WalletProvider";
 import { tokenStore } from "./tokenStore";
@@ -41,8 +46,17 @@ interface AuthState {
    */
   isRegistering: boolean;
   user: AuthUser | null;
+  /** Wallets this account has proven control of; may be empty. */
+  wallets: LinkedWallet[];
+  /** The wallet bound to the current session, if any. */
+  sessionWallet: string | null;
   error: string | null;
+  /** Sign in by proving control of the connected wallet. */
   signIn: (profile?: SignUpProfile) => Promise<void>;
+  /** Sign in with email and password; no wallet required. */
+  signInWithPassword: (email: string, password: string) => Promise<void>;
+  /** Create an account with a password; no wallet required. */
+  register: (payload: RegisterPayload) => Promise<void>;
   signOut: () => Promise<void>;
   clearError: () => void;
 }
@@ -55,11 +69,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [isRegistering, setIsRegistering] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [wallets, setWallets] = useState<LinkedWallet[]>([]);
+  const [sessionWallet, setSessionWallet] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const reset = useCallback(() => {
     tokenStore.clear();
     setUser(null);
+    setWallets([]);
+    setSessionWallet(null);
     setStatus("signedOut");
     setIsRegistering(false);
   }, []);
@@ -103,8 +121,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * than letting the two drift apart.
    */
   useEffect(() => {
-    if (status !== "signedIn" || !user || !account) return;
-    if (account.toLowerCase() !== user.walletAddress.toLowerCase()) {
+    if (status !== "signedIn" || !sessionWallet || !account) return;
+    // Only relevant when the session is wallet-bound: a password session is not
+    // tied to whichever account the wallet happens to be showing.
+    if (account.toLowerCase() !== sessionWallet.toLowerCase()) {
       void (async () => {
         const refreshToken = tokenStore.getRefreshToken();
         if (refreshToken) await api.logout(refreshToken).catch(() => {});
@@ -112,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setError("Wallet account changed, so you were signed out.");
       })();
     }
-  }, [account, user, status, reset]);
+  }, [account, sessionWallet, status, reset]);
 
   const signIn = useCallback(
     async (profile?: SignUpProfile) => {
@@ -146,6 +166,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         tokenStore.setAccessToken(result.accessToken);
         tokenStore.setRefreshToken(result.refreshToken);
         setUser(result.user);
+        setWallets(result.wallets ?? []);
+        setSessionWallet(result.walletAddress ?? account);
         setStatus("signedIn");
         setIsRegistering(false);
       } catch (err) {
@@ -189,6 +211,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [signer, account]
   );
 
+  /** Applies a successful auth response to local state. */
+  const adoptSession = useCallback(
+    (result: {
+      accessToken: string;
+      refreshToken: string;
+      user: AuthUser;
+      wallets?: LinkedWallet[];
+      walletAddress?: string | null;
+    }) => {
+      tokenStore.setAccessToken(result.accessToken);
+      tokenStore.setRefreshToken(result.refreshToken);
+      setUser(result.user);
+      setWallets(result.wallets ?? []);
+      // Null for a password session: it can read and manage the profile, but
+      // cannot act on chain until a wallet is proven.
+      setSessionWallet(result.walletAddress ?? null);
+      setStatus("signedIn");
+      setIsRegistering(false);
+    },
+    []
+  );
+
+  const describeError = useCallback((err: unknown, fallback: string) => {
+    if (err instanceof ApiError) return err.detailedMessage;
+    return err instanceof Error ? err.message : fallback;
+  }, []);
+
+  const signInWithPassword = useCallback(
+    async (email: string, password: string) => {
+      setError(null);
+      setStatus("signingIn");
+      try {
+        adoptSession(await api.login(email, password));
+      } catch (err) {
+        setError(describeError(err, "Sign-in failed"));
+        setStatus("signedOut");
+      }
+    },
+    [adoptSession, describeError]
+  );
+
+  const register = useCallback(
+    async (payload: RegisterPayload) => {
+      setError(null);
+      setStatus("signingIn");
+      try {
+        adoptSession(await api.register(payload));
+      } catch (err) {
+        setError(describeError(err, "Registration failed"));
+        setStatus("signedOut");
+      }
+    },
+    [adoptSession, describeError]
+  );
+
   const signOut = useCallback(async () => {
     const refreshToken = tokenStore.getRefreshToken();
     if (refreshToken) {
@@ -203,12 +280,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       isRegistering,
       user,
+      wallets,
+      sessionWallet,
       error,
       signIn,
+      signInWithPassword,
+      register,
       signOut,
       clearError: () => setError(null),
     }),
-    [status, isRegistering, user, error, signIn, signOut]
+    [
+      status,
+      isRegistering,
+      user,
+      wallets,
+      sessionWallet,
+      error,
+      signIn,
+      signInWithPassword,
+      register,
+      signOut,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
