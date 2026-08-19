@@ -1,0 +1,9 @@
+# Pinned to majors that support Python 3.9, which is what the dev machine has.
+fastapi==0.115.6
+uvicorn[standard]==0.30.6
+python-multipart==0.0.20
+pydantic==2.10.6
+Pillow==10.4.0
+numpy==1.26.4
+ImageHash==4.3.1
+pypdf==5.1.0

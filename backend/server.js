@@ -21,6 +21,7 @@ const verifierRoutes = require('./routes/verifierRoutes');
 const fileRoutes = require('./routes/fileRoutes');
 const tenderRoutes = require('./routes/tenderRoutes');
 const publicRoutes = require('./routes/publicRoutes');
+const artefactRoutes = require('./routes/artefactRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -121,6 +122,7 @@ app.use('/api/verifiers', verifierRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/tenders', tenderRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/artefacts', artefactRoutes);
 
 // Serve uploaded files (if storing locally)
 app.use('/uploads', express.static('uploads'));

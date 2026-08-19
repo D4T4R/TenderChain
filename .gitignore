@@ -26,3 +26,8 @@ frontend-next/out/
 
 # Machine-specific preview launcher (contains an absolute nvm node path)
 .claude/launch.json
+
+# Python screening service virtualenv
+ml-service/.venv/
+ml-service/**/__pycache__/
+ml-service/.pytest_cache/
